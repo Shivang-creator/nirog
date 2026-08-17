@@ -1,26 +1,97 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * A clinical palette. Paper, ink, and exactly three signal colours — amber for
+ * a recurrence, slate for a watch, and a muted green for a genuine all-clear.
+ *
+ * Restraint is the point. A chart where everything is coloured is a chart where
+ * nothing is, and the one thing this product must be able to do is make a
+ * doctor look at a specific line.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --paper: #fbfaf8;
+  --panel: #ffffff;
+  --ink: #16181d;
+  --ink-2: #4a5058;
+  --ink-3: #858b95;
+  --rule: #e6e3dd;
+
+  --flag: #b45309;
+  --flag-bg: #fdf6ec;
+  --flag-rule: #e8d5b5;
+
+  --watch: #475569;
+  --watch-bg: #f4f5f7;
+
+  --clear: #3f6b52;
+  --clear-bg: #f2f7f3;
+
+  --down: #9a3412;
+  --down-bg: #fdf2ec;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #0e0f12;
+    --panel: #16181d;
+    --ink: #eceef2;
+    --ink-2: #a8aeb8;
+    --ink-3: #6f7681;
+    --rule: #262a31;
+
+    --flag: #e0a563;
+    --flag-bg: #21190e;
+    --flag-rule: #4a3a20;
+
+    --watch: #9aa5b4;
+    --watch-bg: #1a1d23;
+
+    --clear: #7fb094;
+    --clear-bg: #131b16;
+
+    --down: #e08a63;
+    --down-bg: #221410;
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-panel: var(--panel);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-flag: var(--flag);
+  --color-flag-bg: var(--flag-bg);
+  --color-flag-rule: var(--flag-rule);
+  --color-watch: var(--watch);
+  --color-watch-bg: var(--watch-bg);
+  --color-clear: var(--clear);
+  --color-clear-bg: var(--clear-bg);
+  --color-down: var(--down);
+  --color-down-bg: var(--down-bg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The patient's own words. Always set apart, never paraphrased. */
+.quote {
+  font-style: italic;
+  color: var(--ink);
+}
+
+/* Small caps label used for section headers and SBAR letters. */
+.label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
