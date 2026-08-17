@@ -12,11 +12,14 @@ Working and verified against the live cluster:
 
 - ✅ Schema applied to `project-nirog` (CockroachDB v26.2.5, Mumbai)
 - ✅ Vector index `complaint_embedding_idx` with `patient_id` prefix
-- ✅ 113 tests passing, offline, ~0.4s
+- ✅ 122 tests passing, offline, ~0.4s
 - ✅ `next build` clean
 - ✅ All four routes render: `/`, `/intake`, `/doctor`, `/doctor/[id]`, `/method`
 - ✅ Demo data seeded — recurrence fires on Anita, both negative controls behave
-- ✅ Volume data (~400 patients) so the query plan reflects real use
+- ✅ Volume data (403 patients, 2225 complaints)
+- ✅ Graceful degradation verified live — pointed DATABASE_URL at a dead host,
+      the page rendered the amber "memory unreachable" panel instead of an
+      empty chart
 - ✅ README, LICENSE (MIT), `.env.example`
 
 Not done:
@@ -90,7 +93,7 @@ npx vercel --prod
 
 Add the environment variables in the Vercel dashboard: `DATABASE_URL`,
 `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
-`BEDROCK_EMBED_MODEL`, `BEDROCK_CHAT_MODEL`.
+`BEDROCK_EMBED_MODEL`.
 
 > **Check this or the demo is invisible to judges.** Vercel turns on
 > **Deployment Protection** by default on team accounts, which puts an SSO login
@@ -128,7 +131,7 @@ Suggested beats:
 | 0:00 | The three sentences. Read them aloud. *"Same problem. No shared words."* |
 | 0:30 | `/doctor/anita` — the recurrence flag, the three quotes, the dates |
 | 1:00 | Point at the inherited row: *"this one names no body part — 'back' means returned. The region came from memory."* |
-| 1:30 | `npm run db:explain` in a terminal — the `• vector search` node and the prefix span |
+| 1:30 | `npm run db:explain` in a terminal — the index definition, the plan, the real distances |
 | 2:10 | **Kill the database.** Change `DATABASE_URL` to a dead host, reload `/doctor`. Show the amber panel |
 | 2:40 | *"It doesn't say no history found. It says it couldn't check, and tells you not to read that as reassurance."* |
 
@@ -147,11 +150,14 @@ Two required fields people forget:
 
 - **"Identify which CockroachDB tools you used and how"** — MCP Server,
   Distributed Vector Indexing, ccloud CLI. The README has the exact wording for
-  each; the MCP answer should mention the `embedding IS NOT NULL` plan fix,
-  because it shows the tool actually did something.
+  each; the MCP answer should mention the two corrections it produced (the
+  prefix column, and the `IS NOT NULL` guard that was hiding a null-distance
+  bug) — it shows the tool actually did something.
 - **"Identify which AWS Services you used and how"** — Bedrock: Titan Text
-  Embeddings V2 for the recall path, gpt-oss-120b kept consistent with the
-  existing Nirog backend.
+  Embeddings V2 for the recall path. It is the *only* model in the system, and
+  the README explains why there is deliberately no LLM in the clinical output.
+  Say that out loud rather than apologising for it — it is a design position,
+  not a gap.
 
 Attach the architecture diagram from the README (it is plain ASCII, screenshots
 fine).
@@ -162,7 +168,7 @@ fine).
 
 ```bash
 npm install
-npm test              # 113 tests, no credentials needed
+npm test              # 122 tests, no credentials needed
 npm run dev
 
 npm run verify        # check CockroachDB + Bedrock connectivity

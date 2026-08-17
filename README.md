@@ -166,15 +166,34 @@ ccloud cluster list -o json
 
 ## AWS services used
 
-### Amazon Bedrock
+### Amazon Bedrock — Titan Text Embeddings V2
 
-- **Titan Text Embeddings V2** (`amazon.titan-embed-text-v2:0`) — 1024
-  dimensions, `normalize: true`, produces every vector in the recall path.
-- **gpt-oss-120b** — the same model the existing Nirog clinical intake backend
-  runs, kept for consistency across the two systems.
+`amazon.titan-embed-text-v2:0`, 1024 dimensions, `normalize: true`. It produces
+every vector in the recall path, and it is the only model in the system.
 
 Region `us-west-2`. Credentials are read from the environment and never
 committed.
+
+### Why there is no LLM in the clinical output
+
+An earlier plan had gpt-oss-120b rewriting the SBAR handover into prose. It was
+cut, and the reason is worth stating rather than quietly dropping.
+
+Every line of the handover is either something the patient actually said or the
+output of a rule you can check by hand. A language model rewriting that text
+could smooth *"the ache is back again"* into *"the patient reports recurrent
+lumbar pain"* — which is a paraphrase, an interpretation, and a small clinical
+claim the patient never made. How somebody describes their pain is itself
+information, and a handover that launders it into medical register has destroyed
+the thing it was carrying.
+
+So the generative model earns no place here. Bedrock does the one job that cannot
+be done by arithmetic — turning language into a vector so that two different
+sentences can be recognised as one complaint — and the parts a doctor reads are
+assembled deterministically from rows.
+
+Using more of a sponsor's product than the problem needs would score better and
+build worse.
 
 ---
 
