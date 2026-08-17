@@ -62,6 +62,7 @@ optional — see [Running without AWS](#running-without-aws).
 npm test                       # 122 tests, offline, ~0.4s
 npm run db:volume              # load a realistic clinic (~400 patients)
 npm run db:explain             # query plans, distances, audit counts
+npm run test:e2e               # 18 checks against the live cluster
 ```
 
 ---

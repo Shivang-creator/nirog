@@ -13,7 +13,8 @@
     "db:seed": "tsx scripts/seed.mts",
     "db:explain": "tsx scripts/explain.mts",
     "verify": "tsx scripts/verify.mts",
-    "db:volume": "tsx scripts/seed-volume.mts"
+    "db:volume": "tsx scripts/seed-volume.mts",
+    "test:e2e": "tsx scripts/smoke.mts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1111.0",

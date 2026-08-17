@@ -13,6 +13,7 @@ Working and verified against the live cluster:
 - ✅ Schema applied to `project-nirog` (CockroachDB v26.2.5, Mumbai)
 - ✅ Vector index `complaint_embedding_idx` with `patient_id` prefix
 - ✅ 122 tests passing, offline, ~0.4s
+- ✅ `npm run test:e2e` — 18 checks against the live cluster, all passing
 - ✅ `next build` clean
 - ✅ All four routes render: `/`, `/intake`, `/doctor`, `/doctor/[id]`, `/method`
 - ✅ Demo data seeded — recurrence fires on Anita, both negative controls behave
@@ -176,6 +177,7 @@ npm run db:migrate    # idempotent, safe to re-run
 npm run db:seed       # 3 demo patients
 npm run db:volume     # ~400 synthetic patients for realistic query plans
 npm run db:explain    # evidence: the plan, the distances, the audit count
+npm run test:e2e      # walks a patient through 4 visits on the real cluster
 ```
 
 ---
