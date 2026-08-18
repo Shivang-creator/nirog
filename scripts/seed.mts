@@ -3,12 +3,14 @@
  *
  * Three patients, chosen so the app has something to be *wrong* about.
  *
- * Anita is the demonstration: three lumbar presentations across six weeks,
- * worded completely differently each time. Rahul and Priya exist because a tool
- * that only ever finds patterns is not detecting anything — Rahul must come back
- * clean, and Priya must come back as "watch" rather than being rounded up to a
- * recurrence. If a change to the rule makes all three light up, the seed will
- * show it immediately.
+ * Rahul is the demonstration, and he is named to match the app's signed-in
+ * user so that opening Nirog lands on someone ARIA already knows: three lumbar
+ * presentations across six weeks, worded completely differently each time.
+ *
+ * Meera and Priya exist because a tool that only ever finds patterns is not
+ * detecting anything — Meera must come back clean, and Priya must read as
+ * "watch" rather than being rounded up to a recurrence. If a change to the rule
+ * makes all three light up, the seed shows it immediately.
  *
  * The complaint wordings are the demo script. They are meant to read like a
  * person talking, because that is the whole difficulty: nobody describes the
@@ -50,9 +52,11 @@ interface SeedPatient {
 
 const PATIENTS: SeedPatient[] = [
   {
-    name: "Anita R.",
+    // Named to match the app's signed-in user, so opening Nirog lands on a
+    // patient who already has a history and ARIA has something to remember.
+    name: "Rahul",
     yearOfBirth: 1992,
-    sex: "Female",
+    sex: "Male",
     familyHistory: "Father — lumbar disc surgery at 40",
     note: "the demonstration: three lumbar visits, no shared keywords",
     visits: [
@@ -77,9 +81,9 @@ const PATIENTS: SeedPatient[] = [
     ],
   },
   {
-    name: "Rahul M.",
+    name: "Meera K.",
     yearOfBirth: 1985,
-    sex: "Male",
+    sex: "Female",
     note: "negative control: one complaint, must not flag",
     visits: [
       { daysAgo: 2, complaints: ["sharp headache behind my eyes since yesterday"] },

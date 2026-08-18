@@ -1,62 +1,37 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+import { AriaProvider } from "@/components/aria/AriaProvider";
+import { TabBar } from "@/components/nirog/TabBar";
 
 export const metadata: Metadata = {
-  title: "Nirog — has this patient told us this before?",
+  title: "Nirog — ARIA remembers",
   description:
-    "Agent memory for clinical intake. Patients describe the same problem differently every visit; Nirog links those descriptions and surfaces the recurrence.",
+    "Clinical intake with ARIA. She asks, reasons over a 13,144-condition knowledge base, hands a doctor an SBAR — and remembers what you told her last time.",
 };
 
-const NAV = [
-  { href: "/", label: "Home" },
-  { href: "/intake", label: "Intake" },
-  { href: "/doctor", label: "Doctor" },
-  { href: "/method", label: "Method" },
-];
+export const viewport: Viewport = {
+  themeColor: "#DBE7F9",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  // The avatar is full-bleed; the chrome positions itself off the safe-area insets.
+  viewportFit: "cover",
+};
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <header className="border-b border-rule">
-          <div className="mx-auto w-full max-w-4xl px-6 py-4 flex items-baseline justify-between gap-6">
-            <Link href="/" className="flex items-baseline gap-2.5">
-              <span className="text-[17px] tracking-[-0.01em] font-medium">
-                Nirog
-              </span>
-              <span className="hidden sm:inline text-[12px] text-ink-3">
-                the patient&rsquo;s history, remembered
-              </span>
-            </Link>
-            <nav className="flex gap-5 text-[13px] text-ink-2">
-              {NAV.map((n) => (
-                <Link key={n.href} href={n.href} className="hover:text-ink">
-                  {n.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-        </header>
-
-        <main className="flex-1">{children}</main>
-
-        <footer className="border-t border-rule mt-16">
-          <div className="mx-auto w-full max-w-4xl px-6 py-6 text-[12px] text-ink-3 leading-relaxed">
-            <p>
-              Nirog is a demonstration built for the CockroachDB × AWS
-              hackathon. It is not a medical device, it does not diagnose, and
-              nothing it produces should be acted on without a clinician.
-            </p>
-          </div>
-        </footer>
+    <html lang="en" className="h-full">
+      <body className="min-h-full">
+        {/*
+          ARIA is mounted here, above the router, and never unmounts. Navigating
+          to the case file and back would otherwise reboot Three.js, refetch a
+          14 MB avatar and cut her off mid-sentence.
+        */}
+        <AriaProvider>
+          {children}
+          <TabBar />
+        </AriaProvider>
       </body>
     </html>
   );
