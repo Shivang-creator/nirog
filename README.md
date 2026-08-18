@@ -291,6 +291,10 @@ build worse.
 
 ## Architecture
 
+![Nirog architecture](docs/architecture.png)
+
+*(source: [docs/architecture.html](docs/architecture.html) — rendered with Playwright)*
+
 ```
         patient's words
               │
