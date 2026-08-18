@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   TranscribeStreamingClient,
   StartStreamTranscriptionCommand,
+  type LanguageCode,
 } from "@aws-sdk/client-transcribe-streaming";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +87,11 @@ export async function POST(req: NextRequest) {
       new StartStreamTranscriptionCommand({
         // en-IN, because the people this is built for speak Indian English and
         // switch into Hindi mid-sentence.
-        LanguageCode: "en-IN",
+        // Her ears and her voice must agree: a nurse who speaks one English and
+        // listens for another mishears the accent she is talking to.
+        LanguageCode: (process.env.TRANSCRIBE_LANGUAGE_CODE ??
+          process.env.POLLY_LANGUAGE_CODE ??
+          "en-NZ") as LanguageCode,
         MediaSampleRateHertz: SAMPLE_RATE,
         MediaEncoding: "pcm",
         AudioStream: (async function* () {

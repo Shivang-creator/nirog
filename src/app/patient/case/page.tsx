@@ -5,6 +5,7 @@ import { getChart } from "@/lib/memory/queries";
 import { REGION_LABELS } from "@/lib/clinical/regions";
 import { renderSbar } from "@/lib/clinical/sbar";
 import { HideScene } from "@/components/nirog/SceneVisibility";
+import { ConversationHandover } from "@/components/nirog/ConversationHandover";
 
 export const dynamic = "force-dynamic";
 
@@ -236,6 +237,13 @@ export default async function CasePage() {
                   </p>
                 </section>
               )}
+
+              {/*
+                What she made of the conversation, above the fixed record —
+                because it is the thing the patient just did, and it is also the
+                thing that can be absent. The SBAR underneath never is.
+              */}
+              <ConversationHandover />
 
               {/* ---------- handover ---------- */}
               <section

@@ -14,6 +14,35 @@ const schema = z.object({
   password: z.string().min(1),
 });
 
+/**
+ * One click into the workspace, for anyone evaluating this build.
+ *
+ * The sign-in form pre-fills demo credentials, which still asks a reviewer to
+ * trust that the pre-filled password is the right one and to press a button
+ * labelled as though it were checking them. This says what it is. Where a real
+ * Supabase project IS configured it signs in as the demo clinician properly,
+ * so the button never becomes a way around real authentication.
+ */
+export async function demoSignIn(): Promise<void> {
+  if (!isAuthConfigured()) {
+    revalidatePath("/", "layout");
+    redirect("/portal");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: process.env.DEMO_DOCTOR_EMAIL ?? "ananya.rao@nirog.health",
+    password: process.env.DEMO_DOCTOR_PASSWORD ?? "nirog-demo",
+  });
+  if (error) {
+    // A form action cannot hand state back the way useActionState does, so the
+    // one failure mode this button has travels in the URL instead.
+    redirect("/login?demo=unavailable");
+  }
+  revalidatePath("/", "layout");
+  redirect("/portal");
+}
+
 export async function authenticate(
   _prev: SignInState,
   formData: FormData

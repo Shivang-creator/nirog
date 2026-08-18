@@ -2,11 +2,35 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Loader2, ArrowRight, ShieldCheck } from "lucide-react";
-import { authenticate, type SignInState } from "@/app/(auth)/actions";
+import { Loader2, ArrowRight, ShieldCheck, Stethoscope } from "lucide-react";
+import { authenticate, demoSignIn, type SignInState } from "@/app/(auth)/actions";
 import { Input, Label } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { GoogleButton, AuthDivider } from "@/components/auth/google-button";
+
+/** The judge's door. Says exactly what it does, and does exactly that. */
+function DemoButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button
+      type="submit"
+      size="lg"
+      variant="outline"
+      className="w-full"
+      disabled={pending}
+    >
+      {pending ? (
+        <>
+          <Loader2 className="animate-spin" /> Opening the workspace…
+        </>
+      ) : (
+        <>
+          <Stethoscope /> Sign in as the demo doctor
+        </>
+      )}
+    </Button>
+  );
+}
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -33,6 +57,18 @@ export function LoginForm() {
 
   return (
     <div>
+      {/*
+        First, not last. A reviewer with no account should not have to read a
+        credentials form to work out that they are allowed in.
+      */}
+      <form action={demoSignIn}>
+        <DemoButton />
+      </form>
+      <p className="mt-2 text-center text-xs text-ink-faint">
+        No account needed — opens Dr. Ananya Rao&rsquo;s workspace with demo data.
+      </p>
+
+      <AuthDivider />
       <GoogleButton label="Sign in with Google" />
       <AuthDivider />
       <form action={formAction} className="flex flex-col gap-4">

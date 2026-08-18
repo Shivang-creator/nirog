@@ -4,6 +4,7 @@ import {
   SynthesizeSpeechCommand,
   type VoiceId,
   type Engine,
+  type LanguageCode,
 } from "@aws-sdk/client-polly";
 
 export const dynamic = "force-dynamic";
@@ -24,8 +25,14 @@ export const dynamic = "force-dynamic";
  * for the same reason; a Next.js route handler already is one.
  */
 
-const VOICE = (process.env.POLLY_VOICE_ID ?? "Kajal") as VoiceId;
+/*
+ * Polly's en-NZ neural voice is called Aria, which is also the nurse's name.
+ * Voice and language are one decision and travel together — a voice read with
+ * the wrong language code gets the vowels right and the rhythm wrong.
+ */
+const VOICE = (process.env.POLLY_VOICE_ID ?? "Aria") as VoiceId;
 const ENGINE = (process.env.POLLY_ENGINE ?? "neural") as Engine;
+const SPEAK_LANG = (process.env.POLLY_LANGUAGE_CODE ?? "en-NZ") as LanguageCode;
 
 /** Polly's hard ceiling is 3000 characters; ARIA's lines are nowhere near it. */
 const MAX_CHARS = 1000;
@@ -74,7 +81,7 @@ export async function POST(req: NextRequest) {
         OutputFormat: "mp3",
         VoiceId: VOICE,
         Engine: ENGINE,
-        LanguageCode: "en-IN",
+        LanguageCode: SPEAK_LANG,
       }),
     );
 
@@ -90,6 +97,7 @@ export async function POST(req: NextRequest) {
       audio: Buffer.from(bytes).toString("base64"),
       voice: VOICE,
       engine: ENGINE,
+      language: SPEAK_LANG,
       latencyMs: Date.now() - started,
     });
   } catch (err) {

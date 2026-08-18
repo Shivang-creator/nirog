@@ -17,7 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAriaContext } from "@/components/aria/AriaProvider";
 import { Dock } from "./Dock";
-import { chat, isConfigured } from "@/lib/nirog/aria";
+import { chat, handover as requestHandover, isConfigured } from "@/lib/nirog/aria";
 import { appendTurn, getCase, resetCase, setCase, useCase } from "@/lib/nirog/caseStore";
 import {
   beginInterview,
@@ -142,6 +142,36 @@ export function Home({ patientId }: { patientId: string | null }) {
   );
 
   /**
+   * Write the doctor's letter the moment the history is finished, in the
+   * background, exactly as the mobile app does.
+   *
+   * It takes about ten seconds. Starting it here means that by the time the
+   * patient has listened to ARIA's closing summary and tapped through to their
+   * case file, the handover is already sitting there — rather than the patient
+   * arriving at a spinner on the one screen the whole conversation was for.
+   *
+   * Failure is survivable and silent: the case file is assembled from
+   * CockroachDB rows regardless, and this letter is the model's addition to it,
+   * never the thing it depends on.
+   */
+  const prepareHandover = useCallback(async () => {
+    const c = getCase();
+    if (c.handover || !c.history.length || !isConfigured()) return;
+    try {
+      const doc = await requestHandover({
+        history: c.history,
+        intake: c.intake,
+        candidates: c.candidates,
+        profile: { name: USER.name },
+        flags: c.flags,
+      });
+      setCase({ handover: doc });
+    } catch (err) {
+      console.warn("[aria] handover could not be written now", err);
+    }
+  }, []);
+
+  /**
    * She takes the history herself.
    *
    * A structured history is a fixed list of questions asked in a fixed order, so
@@ -177,9 +207,10 @@ export function Home({ patientId }: { patientId: string | null }) {
         setHandsFree(false);
         setSession("paused");
         aria.abortListen();
+        void prepareHandover();
       }
     },
-    [aria, remembered],
+    [aria, remembered, prepareHandover],
   );
 
   /** One turn: say it, ask the model, record it, speak the answer. */
@@ -249,6 +280,7 @@ export function Home({ patientId }: { patientId: string | null }) {
           setHandsFree(false);
           setSession("paused");
           aria.abortListen();
+          void prepareHandover();
         }
         if (res.redFlag) setTimeout(() => router.push("/patient/case"), 1200);
       } catch (err) {
@@ -259,7 +291,7 @@ export function Home({ patientId }: { patientId: string | null }) {
         ask(t);
       }
     },
-    [aria, ask, patientId, router],
+    [aria, ask, patientId, router, prepareHandover],
   );
 
   /*
