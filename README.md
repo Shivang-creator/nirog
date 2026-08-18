@@ -65,7 +65,13 @@ npm test                       # 170 tests, offline, ~0.7s
 npm run db:volume              # load a realistic clinic (~400 patients)
 npm run db:explain             # query plans, distances, audit counts
 npm run test:e2e               # 18 checks against the live cluster
+npm run cluster:status         # topology + audit log, via the ccloud CLI
+npm run walk                   # crawl the running app for dead ends
 ```
+
+**No account is needed anywhere.** The landing page asks who you are; both
+answers lead to a sign-in that opens with a one-click demo door — *Continue as
+Rahul* for the patient side, *Sign in as the demo doctor* for the clinician's.
 
 ---
 
@@ -125,7 +131,40 @@ same query with the index forced — showing identical rows and distances either
 way. We did not add an index hint to the production query. Making the demo look
 better by making the software slower is not an engineering decision.
 
-### 2. Managed MCP Server
+### 2. Signalling a video consultation
+
+The vector index is the headline use, but it is not the only one. A WebRTC call
+needs two browsers to exchange an offer, an answer and a handful of ICE
+candidates before any media can flow, and they need somewhere to leave those for
+each other. That is usually a second managed service; here it is a table.
+
+```sql
+CREATE TABLE call_signal (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room       STRING NOT NULL,
+  from_role  STRING NOT NULL,          -- 'doctor' | 'patient'
+  payload    JSONB NOT NULL,           -- SDP or ICE candidate, verbatim
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX call_signal_room_time_idx ON call_signal (room, created_at ASC);
+```
+
+Each peer appends what it has to say and reads what the other appended
+(`/api/call/signal`). The media never touches the table — once the browsers have
+found each other the video is peer to peer — and rows are swept ten minutes
+later. TURN relay credentials are fetched server-side per call, so the key never
+reaches the browser.
+
+Two things this cost us, both worth writing down. A peer joining used to replay
+the last minute of signals, so a room used earlier handed the new arrival a
+stale offer it could never complete. And the joining peer minted its own
+starting cursor from the browser clock, then asked the database for rows newer
+than it — a client a second ahead of the cluster waits forever for messages
+already sitting in the table. **The cursor is issued by the same clock that
+stamps the rows.** It connected locally and would not connect in production
+until it was.
+
+### 3. Managed MCP Server
 
 Connected to Claude Code during development via the config snippet from the
 Cloud Console:
@@ -157,7 +196,7 @@ ranking complaints with *no vector at all* as perfect matches, at the top of a
 doctor's screen. The guard had been concealing it. `tests/recall-mapping.test.ts`
 now pins the behaviour.
 
-### 3. ccloud CLI (agent-ready)
+### 4. ccloud CLI (agent-ready)
 
 `npm run cluster:status` (`scripts/cluster-status.mts`) asks the Cloud control
 plane what it knows about the database, in the JSON every `ccloud` command
@@ -214,7 +253,16 @@ exists.
 
 ARIA speaks through Polly (`/api/speak`) and hears through Transcribe
 (`/api/transcribe`), giving the intake a hands-free voice loop on top of the
-same memory layer.
+same memory layer. Voice and language are one setting and travel together —
+`POLLY_VOICE_ID` with `POLLY_LANGUAGE_CODE`, and Transcribe follows — because a
+nurse who speaks one English and listens for another mishears the accent she is
+talking to. The default is Polly's en-NZ neural voice, which is called Aria.
+
+The loop's hard part is not the audio, it is the gap after it. The microphone
+closes one to three seconds before the definitive transcription lands, and a
+hands-free loop that treats that window as free time reopens the mic, supersedes
+the in-flight transcription, and silently discards the sentence the patient just
+finished saying. `finalising` is the state that holds the loop through it.
 
 ### Why there is no LLM in the clinical output
 
@@ -276,6 +324,17 @@ build worse.
               ▼
           doctor view
 ```
+
+The same cluster carries a second, smaller job: `call_signal` is where the two
+browsers in a teleconsultation exchange SDP and ICE before the video goes peer
+to peer.
+
+And the conversation has the same two-layer shape as the chart.
+`openai.gpt-oss-120b` on Bedrock conducts the intake when it is reachable;
+underneath it `lib/clinical/interview.ts` asks the same OLDCARTS history in
+fixed clinical order, adapting the wording and the red-flag question to the body
+region. If the model dies mid-consultation she keeps asking questions instead of
+apologising, and the handover still gets written.
 
 ### Two layers, kept apart
 
@@ -442,9 +501,14 @@ src/
     memory/       schema.sql · db.ts · degrade.ts · recall.ts · queries.ts
     ai/           embed.ts · converse.ts
     aria/         nurseHtml.ts (the 3D nurse scene)
-  app/            / · /onboarding · /patient · /patient/case · /portal
-                  /call · /method · /api/aria/{chat,handover,health}
-scripts/          migrate · seed · seed-volume · explain
+    clinical/     interview.ts (the history she takes with no model)
+    webrtc/       use-call.ts (signalled through CockroachDB)
+  app/            / · /patient-login · /login · /onboarding
+                  /patient · /patient/case · /patient/doctors · /patient/profile
+                  /portal · /call/[room] · /method
+                  /api/aria/{chat,handover,health} · /api/call/{signal,ice}
+                  /api/memory/{context,complaint} · /api/speak · /api/transcribe
+scripts/          migrate · seed · seed-volume · explain · cluster-status
 tests/            170 tests
 ```
 

@@ -95,13 +95,22 @@ export function ProfileClient() {
   const [saved, setSaved] = useState(false);
   const [active, setActive] = useState("self");
 
+  /*
+   * Read the stored profile after paint rather than during the effect body.
+   * localStorage is only readable on the client, so the first render is always
+   * the defaults; deferring the swap by a frame keeps it out of the render pass
+   * instead of cascading a second one synchronously.
+   */
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setAcct({ ...DEFAULTS, ...(JSON.parse(raw) as Partial<Account>) });
-    } catch {
-      // A corrupt local record is not worth blocking the screen over.
-    }
+    const id = requestAnimationFrame(() => {
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (raw) setAcct({ ...DEFAULTS, ...(JSON.parse(raw) as Partial<Account>) });
+      } catch {
+        // A corrupt local record is not worth blocking the screen over.
+      }
+    });
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const set = <K extends keyof Account>(k: K, v: Account[K]) =>
