@@ -1,0 +1,167 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1640px;background:#eef2fb;font-family:-apple-system,"Segoe UI",Inter,system-ui,sans-serif;color:#1c2333;padding:34px 30px 26px}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
+h1{font-size:31px;font-weight:800;letter-spacing:-.9px}
+.sub{font-size:13.5px;color:#4a5670;margin-top:5px;max-width:1050px;line-height:1.45}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.right{text-align:right;font-size:11px;color:#6b7794;line-height:1.6}
+.right b{color:#5b53d6;font-size:12.5px;display:block;margin-bottom:3px}
+.band{border-radius:15px;padding:13px 15px;margin-bottom:12px}
+.blabel{font-size:10px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;margin-bottom:10px}
+.note{font-weight:400;letter-spacing:.2px;text-transform:none;color:#7c88a3;font-size:10px}
+.row{display:flex;gap:9px;align-items:stretch}
+.card{background:#fff;border:1px solid #dfe5f2;border-radius:11px;padding:10px 11px;flex:1;min-width:0}
+.card h4{font-size:12.5px;font-weight:750;letter-spacing:-.2px;margin-bottom:5px}
+.card p{font-size:10.4px;line-height:1.5;color:#4e5a73;margin-top:4px}
+.card .k{font-size:9.9px;color:#7b869e}
+code{font-family:ui-monospace,Menlo,monospace;font-size:9.7px;background:#eef1f9;padding:1px 4px;border-radius:3px;color:#3b4considerable}
+code{color:#3b4667}
+b{font-weight:700;color:#1c2333}
+.pill{display:inline-block;font-size:9.3px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:6px}
+.amber{background:#fdf1dd;color:#9a5b06}
+.tag{font-size:9.6px;font-weight:700;padding:2px 8px;border-radius:5px;background:#eaf0fd;color:#2f52a8;border:1px solid #d3ddf5}
+.arrows{display:flex;justify-content:space-around;padding:7px 0 4px}
+.ar{font-size:9.6px;color:#5f6b85;text-align:center;font-family:ui-monospace,Menlo,monospace}
+.ar span{display:block;color:#93a0bb;font-size:13px;line-height:1}
+.flowline{display:flex;justify-content:center;gap:10px;margin:9px 0 11px;flex-wrap:wrap}
+.fl{background:#fff;border:1px solid #cfd9ef;border-radius:20px;padding:3px 12px;font-size:9.8px;font-family:ui-monospace,Menlo,monospace;color:#38456a}
+</style></head><body>
+
+<div class="hdr">
+  <div>
+    <h1>Nirog — agentic memory</h1>
+    <div class="sub">A stateless voice agent gets recall <i>between</i> visits from one CockroachDB cluster. The embedding <b>finds</b> what the patient meant; a deterministic rule <b>decides</b> what it means. The model conducts the conversation and never writes the chart.</div>
+  </div>
+  <div class="right"><b>CockroachDB × AWS Hackathon</b>nirog-memory.vercel.app<br>github.com/Shivang-creator/nirog</div>
+</div>
+
+<!-- BROWSER + AWS -->
+<div class="row" style="margin-bottom:12px">
+  <div class="band" style="background:#e4ecfb;flex:0 0 300px;margin:0">
+    <div class="blabel" style="color:#2f52a8">Browser</div>
+    <div class="card" style="margin-bottom:7px">
+      <h4>/ &nbsp;<span class="k">landing</span></h4>
+      <p>Two doors. Each passes through a sign-in that <b>opens with a one-click demo door</b> — no account, no setup for a reviewer.</p>
+    </div>
+    <div class="card" style="margin-bottom:7px">
+      <h4>/patient &nbsp;<span class="k">ARIA</span></h4>
+      <p>The mobile app's Three.js scene byte-identical in an iframe — <b>6.2 MB</b> GLB, 11 facial morphs. <code>ReactNativeWebView</code> is shimmed to <code>window.parent</code>, so nothing has to stay in sync. Fetched at low priority: a navigation must outrank a nurse.</p>
+    </div>
+    <div class="card" style="margin-bottom:7px">
+      <h4>/portal &nbsp;<span class="k">clinician</span></h4>
+      <p>Queue, chart, consult, audit. The chart reads <b>the same CockroachDB rows</b> the patient's case file is built from — one record, two sides.</p>
+    </div>
+    <div class="card">
+      <h4>/call/[room] &nbsp;<span class="k">teleconsult</span></h4>
+      <p>Real 1:1 WebRTC. Signalled <b>through CockroachDB</b>; Metered TURN relays where no direct path exists.</p>
+    </div>
+  </div>
+
+  <div class="band" style="background:#fdf0e3;flex:1;margin:0">
+    <div class="blabel" style="color:#b4650b">Amazon Web Services <span class="note">· us-west-2 · IAM user nirog-app, scoped to exactly these calls</span></div>
+    <div class="row">
+      <div class="card"><h4>Amazon Transcribe</h4><p class="k mono">streaming · en-NZ · PCM 16 kHz</p><p>Settled results only, never partials — a partial arriving after the answer was sent puts words in the patient's mouth.</p></div>
+      <div class="card"><h4>Bedrock · Titan Embed V2</h4><p class="k mono">titan-embed-text-v2:0<br>1024-d · normalize:true</p><p>Produces every vector in the recall path, so Bedrock is what makes the vector index mean anything.</p></div>
+      <div class="card"><h4>Bedrock · gpt-oss-120b</h4><p class="k mono">Converse · reasoning stripped</p><p>Conducts the intake (low effort for voice latency) and writes the SBAR handover (medium). Never writes the chart.</p></div>
+      <div class="card"><h4>Amazon Polly</h4><p class="k mono">Aria · en-NZ neural · ~400 ms</p><p>Voice and language are one setting; Transcribe moved with her. Polly's en-NZ voice is called Aria.</p></div>
+    </div>
+    <div class="arrows">
+      <div class="ar"><span>↑↓</span>16 kHz PCM</div>
+      <div class="ar"><span>↑↓</span>1024-d vector</div>
+      <div class="ar"><span>↑↓</span>Converse</div>
+      <div class="ar"><span>↑↓</span>mp3 audio</div>
+    </div>
+
+<!-- ROUTES -->
+<div class="band" style="background:#e3e8f4;margin:10px 0 0">
+  <div class="blabel" style="color:#3b4667">Next.js 16 App Router — route handlers on Vercel <span class="note">· every credential stays server-side</span></div>
+  <div class="row">
+    <div class="card"><h4 class="mono" style="font-size:11px">/api/memory/context</h4><p><b>Read before hello.</b> Loads this patient's complaints, runs the recurrence rule, returns <b>one line</b> for ARIA to open with — not a summary of the chart.</p><span class="pill amber">unreachable → she says so</span></div>
+    <div class="card"><h4 class="mono" style="font-size:11px">/api/memory/complaint</h4><p><b>The write path, every turn:</b> embed → recall → resolve region → insert → audit. Runs <i>beside</i> the model call — the consultation never waits for memory.</p><p>A lost row is survivable; a blocked conversation is not.</p></div>
+    <div class="card"><h4 class="mono" style="font-size:11px">/api/aria/chat + /handover</h4><p>Stateless: transcript in, reply + case state out. Under it a <b>deterministic OLDCARTS interview</b> (11 slots, region-adapted red flag) asks the same history when the model is unreachable.</p></div>
+    <div class="card"><h4 class="mono" style="font-size:11px">/api/call/signal + /ice</h4><p>Peers append and read SDP + ICE. TURN credentials fetched server-side per call, so the key never reaches the browser.</p><p>Cursor issued by <b>the DB's clock</b>, not the browser's.</p></div>
+    <div class="card"><h4 class="mono" style="font-size:11px">/api/speak · /api/transcribe</h4><p>Text → mp3 base64 in a JSON envelope — the contract the scene already expected. An empty transcript is an <b>error</b>, never a 200.</p></div>
+  </div>
+</div>
+  </div>
+</div>
+
+<div class="flowline">
+  <div class="fl">SELECT history · no vector</div>
+  <div class="fl">INSERT complaint + vector · one statement</div>
+  <div class="fl">ORDER BY embedding &lt;=&gt; $vec</div>
+  <div class="fl">INSERT call_signal / SELECT since cursor</div>
+  <div class="fl">audit row, always</div>
+</div>
+
+<!-- COCKROACHDB -->
+<div class="band" style="background:#ece9fa">
+  <div class="blabel" style="color:#5b53d6">CockroachDB Serverless <span class="note">· v26.2.5 · AWS Mumbai (ap-south-1) · 2,230 complaints across 405 patients</span></div>
+  <div class="row">
+    <div class="card"><h4 class="mono" style="font-size:11px">complaint <span class="k">the memory itself</span></h4>
+      <p class="mono k">raw_text · body_region · region_source<br>region_inherited_from · embed_model<br>embedding VECTOR(1024) · nullable</p>
+      <p>Complaint and vector written in <b>one statement</b> — no ETL, no window where a memory exists but is not yet searchable, no way for the two to disagree.</p>
+      <p>Still recorded when the embedder is down: <b>losing the index is degraded service, losing the words is data loss.</b></p></div>
+    <div class="card"><h4 class="mono" style="font-size:11px">VECTOR INDEX complaint_embedding_idx</h4>
+      <p class="mono k">(patient_id, embedding vector_cosine_ops)</p>
+      <p><b>patient_id as prefix</b> — C-SPANN descends one patient's span, so latency follows one history, not the clinic's size. A query that cannot say "search everyone" cannot accidentally do it.</p>
+      <p><b>Cosine, not L2.</b> Titan does not guarantee unit norm; under L2 a long complaint drifts from a short one meaning the same thing.</p>
+      <p class="k">Cut-offs per embedding space: 0.85 Titan / 0.55 offline. Distances across spaces are not comparable.</p></div>
+    <div class="card"><h4 class="mono" style="font-size:11px">recall_event <span class="k">audit</span></h4>
+      <p class="mono k">matches_found · top_distance · latency_ms<br>embed_provider · degraded · degraded_reason</p>
+      <p>Every recall attempt, <b>including the ones that failed</b>. "Why did it not flag this?" is answered by a row: the query ran, it returned nothing above threshold, here is the timestamp.</p>
+      <span class="pill amber">the outage is in the record, not inferred</span></div>
+    <div class="card"><h4 class="mono" style="font-size:11px">call_signal <span class="k">a second job</span></h4>
+      <p class="mono k">room · from_role · payload JSONB · created_at</p>
+      <p>Two browsers introduce themselves here — offer, answer, ICE — instead of through a second managed service. <b>Media never touches it</b>; once the peers find each other the video is peer to peer. Rows swept after ten minutes.</p></div>
+    <div class="card"><h4 class="mono" style="font-size:11px">patient · visit</h4>
+      <p class="mono k">patient — name, year_of_birth, sex,<br>family_history<br>visit — occurred_at, channel</p>
+      <p><b>visit is the unit of recurrence:</b> one consultation, however many sentences the patient says inside it.</p></div>
+  </div>
+</div>
+
+<!-- TOOLS -->
+<div class="band" style="background:#e7f1ea">
+  <div class="blabel" style="color:#0f6b39">Three CockroachDB tools, all load-bearing <span class="note">· the rules require two</span></div>
+  <div class="row">
+    <div class="card"><h4>① Distributed Vector Indexing</h4><p>The recall path itself — the index above, carrying 2,230 complaints. <span class="k">Honest note: at demo scale the optimizer prefers a scan over four rows and is right to; <code>npm run db:explain</code> prints both plans and we did not add an index hint to make the demo look better.</span></p></div>
+    <div class="card"><h4>② Cloud Managed MCP Server</h4><p>Claude Code connected read-only to the live cluster. Reading real query plans through it produced <b>two corrections</b>: the index had been built on <code>(embedding)</code> alone with <code>patient_id</code> filtered <i>after</i> the search; and an <code>IS NOT NULL</code> guard was hiding that unembedded rows sorted as <b>perfect matches</b> at the top of a doctor's screen.</p></div>
+    <div class="card"><h4>③ ccloud CLI (agent-ready)</h4><p>Backs <code>npm run cluster:status</code> — topology and the Cloud audit log as JSON. <code>recall_event</code> records every read of a patient's history; the control-plane log records every administrative action against the cluster holding it. A system asking doctors to trust its memory should answer both.</p></div>
+  </div>
+</div>
+
+<!-- CORE + CLINICIAN -->
+<div class="row" style="margin-bottom:12px">
+  <div class="band" style="background:#e7f1ea;flex:1.45;margin:0">
+    <div class="blabel" style="color:#0f6b39">Deterministic core — no model touches this <span class="note">· the embedding finds candidates; a fixed rule decides what they mean</span></div>
+    <div class="row">
+      <div class="card"><h4>resolveRegion()</h4><p>"the ache is <b>back</b> again" names no body part — <i>back</i> there means <i>returned</i>. Read alone it is unclassifiable. Read against what this patient said in July it is obviously lumbar. Memory supplies the region and <code>region_source</code> records that it was <b>inherited</b>, so a doctor can see the link was inferred.</p></div>
+      <div class="card"><h4>recurrence rule</h4><p><b>≥ 3 separate visits</b> naming one body region <b>within 90 days</b>. Arithmetic, no scoring — a doctor can check it on paper in ten seconds.</p><p>It counts <b>visits, not complaints</b>: three sentences in one appointment are one presentation, and counting complaints would let a talkative patient trip the flag on day one.</p></div>
+      <div class="card"><h4>SBAR assembly</h4><p>Every field built from rows. An earlier plan had gpt-oss rewrite it into prose — but a model smoothing "the ache is back again" into "recurrent lumbar pain" <b>invents a claim the patient never made</b>, and how somebody describes their own pain is itself clinical information.</p></div>
+    </div>
+  </div>
+  <div class="band" style="background:#e8ebf5;flex:1;margin:0">
+    <div class="blabel" style="color:#3b4667">What the clinician reads <span class="note">· assembled from rows, never generated</span></div>
+    <div class="card" style="margin-bottom:7px"><h4>Recurrence banner</h4><p>"Why did you flag this?" is answered with <b>a list of dates</b>, not a similarity score. Meera has one complaint and comes back clean; Priya returns <i>watch</i>, not recurrence — a tool that only ever finds patterns is not detecting anything.</p></div>
+    <div class="card"><h4>SBAR handover</h4><p>The same rows ARIA heard, in the form a doctor reads. Assessment reads <code>NOT ASSESSED</code> — not "no history" — when memory was unreachable.</p></div>
+  </div>
+</div>
+
+<!-- STACK -->
+<div class="band" style="background:#e8ebf5;padding:11px 15px">
+  <div class="blabel" style="color:#3b4667;margin-bottom:8px">Also in the stack</div>
+  <div style="display:flex;gap:7px;flex-wrap:wrap">
+    <span class="tag">Node.js</span><span class="tag">TypeScript</span><span class="tag">React 19</span><span class="tag">Tailwind CSS v4</span><span class="tag">shadcn/ui</span><span class="tag">Radix UI</span><span class="tag">Motion</span><span class="tag">Three.js</span><span class="tag">WebRTC + Metered TURN</span><span class="tag">Prisma</span><span class="tag">Zod</span><span class="tag">Vitest — 170 tests</span><span class="tag">Playwright — npm run walk</span><span class="tag">ESLint</span><span class="tag">Vercel</span>
+  </div>
+</div>
+
+<!-- CONTRACT -->
+<div style="background:#fdf1dd;border-left:5px solid #e0a33a;border-radius:11px;padding:13px 17px">
+  <div style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#9a5b06;margin-bottom:6px">The degradation contract — cross-cutting</div>
+  <div style="font-size:11.6px;line-height:1.62;color:#4a3a1e">Every memory read returns <code style="background:#f7e6c8">MemoryOutcome{ ok, value, degraded, reason }</code>, never a bare array, so it is <b>impossible to consume a result without handling the case where memory was down</b>. A failed lookup is never an empty list: "no prior complaints" and "could not check" would render identically, and a doctor reads that absence as reassurance. <b>Absence of evidence is not evidence of absence</b> — and an agent that cannot tell the difference should not be near a patient. The wording is asserted in the test suite, because here the wording <i>is</i> the safety property.</div>
+</div>
+
+</body></html>
