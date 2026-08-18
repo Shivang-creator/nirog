@@ -1,45 +1,47 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type CallRole = "doctor" | "patient";
 export type CallStatus =
   | "idle"
   | "media-error"
-  // Signalling is unconfigured on this deployment, so there is no room to join.
-  // Distinct from "media-error" because nothing the user does fixes it, and
-  // distinct from "idle" because idle invites them to press the button again.
+  // The signalling endpoint could not be reached, so the two peers have no way
+  // to find each other. Distinct from "media-error" because nothing the user
+  // does fixes it, and from "idle" because idle invites another press.
   | "no-signalling"
   | "waiting"
   | "connecting"
   | "connected"
   | "ended";
 
-// STUN gets peers connected on most home/Wi-Fi networks. A TURN relay is
-// required for the hard cases — carrier-grade NAT and restrictive mobile
-// networks common in rural India — where a direct path can't be found. TURN
-// creds are injected via NEXT_PUBLIC_TURN_* env (empty = STUN-only fallback).
-const TURN_URLS = (process.env.NEXT_PUBLIC_TURN_URLS ?? "")
-  .split(",")
-  .map((u) => u.trim())
-  .filter(Boolean);
-
-const RTC_CONFIG: RTCConfiguration = {
+/*
+ * ICE servers are fetched from /api/call/ice at call time rather than compiled
+ * in. TURN credentials are short-lived and issued against a secret that must
+ * not reach the browser, so the server fetches them and hands over only what
+ * expires on its own. STUN alone is the fallback, and it is enough wherever a
+ * direct path exists.
+ */
+const STUN_ONLY: RTCConfiguration = {
   iceServers: [
     { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
-    ...(TURN_URLS.length
-      ? [
-          {
-            urls: TURN_URLS,
-            username: process.env.NEXT_PUBLIC_TURN_USERNAME ?? "",
-            credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL ?? "",
-          },
-        ]
-      : []),
   ],
 };
+
+async function iceConfig(): Promise<RTCConfiguration> {
+  try {
+    const res = await fetch("/api/call/ice", { cache: "no-store" });
+    if (!res.ok) throw new Error(String(res.status));
+    const { iceServers } = (await res.json()) as { iceServers?: RTCIceServer[] };
+    if (iceServers?.length) return { iceServers };
+  } catch {
+    // A relay we could not ask about is not a reason to abandon the call.
+  }
+  return STUN_ONLY;
+}
+
+/** How often each peer asks what the other one has said. */
+const POLL_MS = 1000;
 
 interface Signal {
   kind: "hello" | "offer" | "answer" | "ice" | "bye";
@@ -49,8 +51,8 @@ interface Signal {
 }
 
 /**
- * A real 1:1 WebRTC call, signalled over a Supabase Realtime broadcast channel
- * (`call-<room>`). The doctor is the offerer; the patient answers. Both sides
+ * A real 1:1 WebRTC call, signalled through CockroachDB (`/api/call/signal`,
+ * room `call-<room>`). The doctor is the offerer; the patient answers. Both sides
  * announce with "hello" so join order doesn't matter, and a peer reload simply
  * renegotiates with a fresh RTCPeerConnection. Mute/camera toggles flip the
  * live MediaStreamTrack.enabled flags, so the remote side truly stops
@@ -67,8 +69,10 @@ export function useCall(
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
-  const chanRef = useRef<RealtimeChannel | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Only rows newer than this are asked for, so nothing is handled twice. */
+  const cursorRef = useRef<string | null>(null);
+  const rtcConfRef = useRef<RTCConfiguration>(STUN_ONLY);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const statusRef = useRef<CallStatus>("idle");
@@ -81,14 +85,22 @@ export function useCall(
     setStatus(s);
   };
 
-  const send = useCallback((payload: Signal) => {
-    void chanRef.current?.send({ type: "broadcast", event: "signal", payload });
-  }, []);
+  const send = useCallback(
+    (payload: Signal) => {
+      void fetch("/api/call/signal", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ room, from: role, payload }),
+        keepalive: true, // a "bye" sent while the page is closing must still go
+      }).catch(() => {});
+    },
+    [room, role]
+  );
 
   const newPc = useCallback(() => {
     pcRef.current?.close();
     pendingIce.current = [];
-    const pc = new RTCPeerConnection(RTC_CONFIG);
+    const pc = new RTCPeerConnection(rtcConfRef.current);
     streamRef.current
       ?.getTracks()
       .forEach((t) => pc.addTrack(t, streamRef.current!));
@@ -189,18 +201,23 @@ export function useCall(
     }
     setStatusBoth("waiting");
 
-    supabaseRef.current ??= createClient();
     /*
-     * Signalling rides Supabase realtime; without it there is no room to join.
-     *
-     * This used to drop back to "idle", which re-rendered the join screen as
-     * though nothing had happened — while the camera stayed on, `startedRef`
-     * stayed true so the button was dead on the second press, and no message
-     * ever said why. Release the hardware and name the reason instead: the
-     * same rule the memory layer follows, that a thing which did not happen
-     * must never look like a thing that found nothing.
+     * Confirm the room is reachable before claiming to be in it. A first poll
+     * that fails means the database is unreachable, and a patient staring at a
+     * camera preview that will never connect to anything is worse than being
+     * told so.
      */
-    if (!supabaseRef.current) {
+    rtcConfRef.current = await iceConfig();
+    try {
+      const res = await fetch(
+        `/api/call/signal?room=${encodeURIComponent(room)}&role=${role}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) throw new Error(String(res.status));
+      const first = (await res.json()) as { signals: Signal[]; cursor: string };
+      cursorRef.current = first.cursor;
+      for (const sig of first.signals) await handleSignal(sig);
+    } catch {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
       setLocalStream(null);
@@ -208,16 +225,24 @@ export function useCall(
       setStatusBoth("no-signalling");
       return;
     }
-    const chan = supabaseRef.current.channel(`call-${room}`, {
-      config: { broadcast: { self: false } },
-    });
-    chan.on("broadcast", { event: "signal" }, ({ payload }) =>
-      handleSignal(payload as Signal)
-    );
-    chan.subscribe((st) => {
-      if (st === "SUBSCRIBED") send({ kind: "hello", from: role });
-    });
-    chanRef.current = chan;
+
+    // Announce, then keep asking what the other side said.
+    send({ kind: "hello", from: role });
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/call/signal?room=${encodeURIComponent(room)}&role=${role}` +
+            (cursorRef.current ? `&since=${encodeURIComponent(cursorRef.current)}` : ""),
+          { cache: "no-store" }
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { signals: Signal[]; cursor: string };
+        cursorRef.current = data.cursor;
+        for (const sig of data.signals) await handleSignal(sig);
+      } catch {
+        // One dropped poll is nothing; the next one carries the same rows.
+      }
+    }, POLL_MS);
   }, [room, role, handleSignal, send]);
 
   const toggleMic = useCallback(() => {
@@ -242,10 +267,8 @@ export function useCall(
     streamRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
-    if (chanRef.current && supabaseRef.current) {
-      void supabaseRef.current.removeChannel(chanRef.current);
-    }
-    chanRef.current = null;
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
     startedRef.current = false;
   }, []);
 
@@ -258,13 +281,7 @@ export function useCall(
   // Clean up everything if the component unmounts mid-call.
   useEffect(() => {
     return () => {
-      if (startedRef.current) {
-        void chanRef.current?.send({
-          type: "broadcast",
-          event: "signal",
-          payload: { kind: "bye", from: role } satisfies Signal,
-        });
-      }
+      if (startedRef.current) send({ kind: "bye", from: role });
       teardown();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
