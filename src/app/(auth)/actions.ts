@@ -98,6 +98,14 @@ export async function registerDoctor(
     return { error: parsed.error.issues[0]?.message ?? "Invalid details" };
   }
   const { fullName, email, password, specialty, registrationNo } = parsed.data;
+
+  // Demo sign-up: no auth backend means no account to create. Mirror the demo
+  // sign-in branch — straight into the mock-backed workspace.
+  if (!isAuthConfigured()) {
+    revalidatePath("/", "layout");
+    redirect("/portal");
+  }
+
   const admin = createAdminClient();
 
   const created = await admin.auth.admin.createUser({

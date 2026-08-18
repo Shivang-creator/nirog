@@ -17,10 +17,10 @@ import { config } from "dotenv";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
-import { resolveRegion } from "../src/lib/clinical/resolve.ts";
+import { resolveRegion, inheritThresholdFor } from "../src/lib/clinical/resolve.ts";
 import { detectAll, type ComplaintRecord } from "../src/lib/clinical/recurrence.ts";
 import { buildSbar } from "../src/lib/clinical/sbar.ts";
-import { RECALL_THRESHOLD } from "../src/lib/memory/recall.ts";
+import { recallThresholdFor } from "../src/lib/memory/recall.ts";
 import { embedderFromEnv, resilientEmbedder } from "../src/lib/ai/embed.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -87,9 +87,9 @@ async function visit(text: string, daysAgo: number) {
       occurredAt: new Date(r.occurred_at),
       distance: r.distance === null ? Infinity : Number(r.distance),
     }))
-    .filter((m) => Number.isFinite(m.distance) && m.distance <= RECALL_THRESHOLD);
+    .filter((m) => Number.isFinite(m.distance) && m.distance <= recallThresholdFor(provider));
 
-  const resolved = resolveRegion(text, matches);
+  const resolved = resolveRegion(text, matches, inheritThresholdFor(provider));
 
   const { rows: [v] } = await client.query(
     `INSERT INTO visit (patient_id, occurred_at) VALUES ($1,$2) RETURNING id`,

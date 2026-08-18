@@ -71,9 +71,11 @@ export async function listPatients(): Promise<MemoryOutcome<PatientSummary[]>> {
           FROM patient p
           LEFT JOIN complaint c ON c.patient_id = p.id
          GROUP BY p.id, p.name, p.year_of_birth, p.sex, p.family_history
-         ORDER BY (p.name LIKE '%${SYNTHETIC_SUFFIX}') ASC,
+         ORDER BY (p.name LIKE '%' || $1) ASC,
                   max(c.occurred_at) DESC NULLS LAST
-      `);
+      `,
+        [SYNTHETIC_SUFFIX],
+      );
 
       return rows.map((r) => ({
         id: r.id,

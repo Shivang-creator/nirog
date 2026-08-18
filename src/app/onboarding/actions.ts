@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isAuthConfigured } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { OnboardingProfile } from "@/lib/domain/types";
 
@@ -25,16 +25,20 @@ const schema = z.object({
 export async function saveOnboarding(
   profile: OnboardingProfile
 ): Promise<SaveResult> {
+  const parsed = schema.safeParse(profile);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Please complete the required fields." };
+  }
+
+  // Demo mode: no session and no Doctor table to write to. The wizard
+  // completes; nothing persists, because there is nothing behind it.
+  if (!isAuthConfigured()) return { ok: true };
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Your session expired. Please sign in again." };
-
-  const parsed = schema.safeParse(profile);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Please complete the required fields." };
-  }
 
   const display = /^dr\.?\s/i.test(profile.displayName)
     ? profile.displayName

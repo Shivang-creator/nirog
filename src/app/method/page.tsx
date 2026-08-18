@@ -1,6 +1,12 @@
 import { recentRecalls } from "@/lib/memory/queries";
-import { RECALL_THRESHOLD } from "@/lib/memory/recall";
-import { INHERIT_THRESHOLD } from "@/lib/clinical/resolve";
+import {
+  RECALL_THRESHOLD,
+  BEDROCK_RECALL_THRESHOLD,
+} from "@/lib/memory/recall";
+import {
+  INHERIT_THRESHOLD,
+  BEDROCK_INHERIT_THRESHOLD,
+} from "@/lib/clinical/resolve";
 import { DEFAULT_CONFIG } from "@/lib/clinical/recurrence";
 
 export const dynamic = "force-dynamic";
@@ -27,11 +33,11 @@ export default async function Method() {
         <dl className="mt-5 space-y-4">
           <Row
             k="Semantic recall"
-            v={`Amazon Titan Text Embeddings V2, 1024 dimensions, cosine distance. A prior complaint is surfaced when distance ≤ ${RECALL_THRESHOLD}.`}
+            v={`Amazon Titan Text Embeddings V2, 1024 dimensions, cosine distance. A prior complaint is surfaced when distance ≤ ${BEDROCK_RECALL_THRESHOLD} (${RECALL_THRESHOLD} on the offline fallback embedder — distances are only comparable within one embedding space, so each has its own cut-off).`}
           />
           <Row
             k="Region inheritance"
-            v={`When a complaint names no body part, the region is adopted from the nearest prior complaint — but only at distance ≤ ${INHERIT_THRESHOLD}, stricter than plain recall. The bar for acting on a match is higher than the bar for showing it.`}
+            v={`When a complaint names no body part, the region is adopted from the nearest prior complaint — but only at distance ≤ ${BEDROCK_INHERIT_THRESHOLD} (${INHERIT_THRESHOLD} offline), stricter than plain recall. The bar for acting on a match is higher than the bar for showing it.`}
           />
           <Row
             k="Recurrence rule"
@@ -176,8 +182,10 @@ export default async function Method() {
             <strong className="text-ink font-medium">
               The thresholds are asserted, not validated.
             </strong>{" "}
-            {RECALL_THRESHOLD} and {INHERIT_THRESHOLD} were tuned against a
-            handful of sentences, not a clinical corpus. Three visits in ninety
+            {BEDROCK_RECALL_THRESHOLD} and {BEDROCK_INHERIT_THRESHOLD} (and
+            their offline counterparts {RECALL_THRESHOLD} and{" "}
+            {INHERIT_THRESHOLD}) were tuned against a labelled battery of
+            sentence pairs, not a clinical corpus. Three visits in ninety
             days is a defensible starting point, not a guideline this project is
             in any position to establish.
           </li>
