@@ -6,10 +6,19 @@ export const dynamic = "force-dynamic";
 /**
  * Where the handover goes.
  *
- * The patient's half of the handoff. The doctor's half of the same moment is
- * /portal, and a reviewer who follows one of these through lands there looking
- * at the patient they were just being.
+ * The patient's half of the handoff: who is on the other end of it, and the
+ * button that calls them. The doctor's half of the same moment is /portal, but
+ * that is somewhere a patient is never sent — a reviewer who wants to see it
+ * goes back to the landing page and comes in through the other door.
  */
+
+/**
+ * The room id is derived from the doctor, not from a queue entry, because the
+ * patient is the one placing the call here. It is stable, so the clinician can
+ * be sent to the same room to answer it.
+ */
+const slug = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 const DOCTORS = [
   {
@@ -189,10 +198,23 @@ export default function DoctorsPage() {
                 >
                   ₹{d.fee}
                 </span>
+                {/*
+                  This used to point at /portal, which handed the patient the
+                  clinician's workspace — every other patient's queue included.
+                  A patient calls a doctor; they do not become one. It opens the
+                  consultation room the app has always opened, carrying who is
+                  being called so the ringing screen can name them.
+                */}
                 <Link
-                  href="/portal"
+                  href={{
+                    pathname: `/call/${slug(d.name)}`,
+                    query: { doctor: d.name, spec: d.spec },
+                  }}
                   className="no-select"
                   style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
                     padding: "10px 22px",
                     borderRadius: 999,
                     background: "var(--ink)",
@@ -202,6 +224,10 @@ export default function DoctorsPage() {
                     letterSpacing: "-0.14px",
                   }}
                 >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="2" y="6" width="13" height="12" rx="2" />
+                    <path d="m15 10.5 6-3.5v10l-6-3.5z" />
+                  </svg>
                   Call
                 </Link>
               </div>

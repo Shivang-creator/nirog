@@ -16,8 +16,24 @@ import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 import { useCall, useVideoRef } from "@/lib/webrtc/use-call";
 
-/** Patient side of the consultation — joined via the link the doctor shares. */
-export function CallClient({ room }: { room: string }) {
+/**
+ * Patient side of the consultation.
+ *
+ * Reached from the doctor's shared link, or from the patient's own doctor list
+ * — which is where the mobile app has always started a consult, and which used
+ * to be wired to /portal by mistake. When the caller knows who they are
+ * ringing, the screen says so, the way `app/call.tsx` does on the phone:
+ * name, specialty, and a ring that waits.
+ */
+export function CallClient({
+  room,
+  doctor,
+  spec,
+}: {
+  room: string;
+  doctor?: string;
+  spec?: string;
+}) {
   const call = useCall(room, "patient");
   const localRef = useVideoRef(call.localStream);
   const remoteRef = useVideoRef(call.remoteStream);
@@ -43,11 +59,12 @@ export function CallClient({ room }: { room: string }) {
               <Stethoscope className="size-7" />
             </span>
             <h1 className="mt-4 font-display text-xl font-bold tracking-tight text-ink">
-              Your consultation is ready
+              {doctor ? `Call ${doctor}` : "Your consultation is ready"}
             </h1>
             <p className="mt-1.5 text-sm text-ink-soft">
-              Your doctor is waiting. Join with your camera and microphone —
-              you can turn either off at any time.
+              {doctor
+                ? `${spec ? `${spec} · ` : ""}Nirog video consult. Join with your camera and microphone — you can turn either off at any time.`
+                : "Your doctor is waiting. Join with your camera and microphone — you can turn either off at any time."}
             </p>
             {call.status === "media-error" && (
               <p className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-soft-red px-3 py-2 text-xs text-red">
@@ -93,8 +110,8 @@ export function CallClient({ room }: { room: string }) {
             Consultation ended
           </h1>
           <p className="mt-1.5 max-w-xs text-sm text-ink-soft">
-            Your care plan and any prescriptions will arrive in the Nirog app.
-            Get well soon.
+            {doctor ? `${doctor} will send your care plan and any prescriptions to the Nirog app.` : "Your care plan and any prescriptions will arrive in the Nirog app."}
+            {" "}Get well soon.
           </p>
         </div>
       </main>
@@ -122,9 +139,10 @@ export function CallClient({ room }: { room: string }) {
               <Loader2 className="size-6 animate-spin" />
               <p className="text-sm">
                 {call.status === "connecting"
-                  ? "Connecting to your doctor…"
-                  : "Waiting for your doctor to join…"}
+                  ? `Connecting to ${doctor ?? "your doctor"}…`
+                  : `Ringing ${doctor ?? "your doctor"}…`}
               </p>
+              {spec && <p className="text-xs text-white/45">{spec}</p>}
             </div>
           </div>
         )}
