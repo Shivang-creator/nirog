@@ -49,3 +49,7 @@ SUBMISSION-DRAFT.md
 
 # Internal working notes — not for the public repo
 CONTEXT.md
+
+# Agent instruction files — local tooling, not project documentation
+AGENTS.md
+CLAUDE.md
