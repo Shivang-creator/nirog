@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isAuthConfigured } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type SignInState = { error?: string };
@@ -26,6 +26,24 @@ export async function authenticate(
     return { error: "Enter a valid email and password." };
   }
 
+  /*
+   * Demo sign-in.
+   *
+   * With no Supabase project configured there is no account to authenticate
+   * against, and every attempt failed with "that email and password don't match
+   * our records" — which reads as a wrong password rather than as an absent
+   * backend, so the workspace was unreachable and the reason was misleading.
+   *
+   * A deployment without auth lets anyone straight through to a workspace
+   * populated from the in-memory source. Nothing real is exposed, because there
+   * is nothing real behind it. The portal's own pages still render the same way
+   * either side of this branch.
+   */
+  if (!isAuthConfigured()) {
+    revalidatePath("/", "layout");
+    redirect("/portal");
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
@@ -44,8 +62,10 @@ export async function authenticate(
 }
 
 export async function logout() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  if (isAuthConfigured()) {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  }
   redirect("/login");
 }
 

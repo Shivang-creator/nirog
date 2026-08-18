@@ -15,7 +15,8 @@
     "verify": "tsx scripts/verify.mts",
     "db:volume": "tsx scripts/seed-volume.mts",
     "test:e2e": "tsx scripts/smoke.mts",
-    "check:browser": "tsx scripts/browser-check.mts"
+    "check:browser": "tsx scripts/browser-check.mts",
+    "walk": "tsx scripts/walk.mts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1111.0",

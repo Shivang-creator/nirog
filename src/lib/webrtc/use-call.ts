@@ -186,6 +186,11 @@ export function useCall(
     setStatusBoth("waiting");
 
     supabaseRef.current ??= createClient();
+    // Signalling rides Supabase realtime; without it there is no call to join.
+    if (!supabaseRef.current) {
+      setStatusBoth("idle");
+      return;
+    }
     const chan = supabaseRef.current.channel(`call-${room}`, {
       config: { broadcast: { self: false } },
     });

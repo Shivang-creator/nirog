@@ -42,6 +42,7 @@ export function PatientDocuments({ patientId }: { patientId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!supabase) return;
     const { data, error } = await supabase.storage
       .from(BUCKET)
       .list(patientId, { sortBy: { column: "created_at", order: "desc" } });
@@ -68,6 +69,7 @@ export function PatientDocuments({ patientId }: { patientId: string }) {
   }, [refresh]);
 
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!supabase) { setError("Document storage needs Supabase configured on this deployment."); return; }
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
@@ -84,6 +86,7 @@ export function PatientDocuments({ patientId }: { patientId: string }) {
   }
 
   async function open(name: string) {
+    if (!supabase) { setError("Document storage needs Supabase configured on this deployment."); return; }
     const { data } = await supabase.storage
       .from(BUCKET)
       .createSignedUrl(`${patientId}/${name}`, 60);
@@ -91,6 +94,7 @@ export function PatientDocuments({ patientId }: { patientId: string }) {
   }
 
   async function remove(name: string) {
+    if (!supabase) { setError("Document storage needs Supabase configured on this deployment."); return; }
     await supabase.storage.from(BUCKET).remove([`${patientId}/${name}`]);
     await refresh();
   }

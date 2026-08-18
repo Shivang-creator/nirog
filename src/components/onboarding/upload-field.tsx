@@ -34,6 +34,7 @@ export function UploadField({
   const [error, setError] = useState<string | null>(null);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!supabase) { setError("File upload needs Supabase Storage configured on this deployment."); return; }
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);

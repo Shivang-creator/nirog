@@ -19,6 +19,9 @@ export function QueueRealtime() {
 
   useEffect(() => {
     const supabase = createClient();
+    // No Supabase means no realtime channel. The queue still renders from the
+    // server-side source; it just will not update without a reload.
+    if (!supabase) return;
     let channel: ReturnType<typeof supabase.channel> | undefined;
 
     (async () => {

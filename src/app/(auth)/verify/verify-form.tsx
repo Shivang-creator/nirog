@@ -10,12 +10,15 @@ import { Button } from "@/components/ui/button";
 export function VerifyForm() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
+  // Step-up verification only exists when Supabase does.
+  const authReady = supabase !== null;
   const [factorId, setFactorId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!supabase) return;
     supabase.auth.mfa.listFactors().then(({ data }) => {
       const totp = data?.totp?.find((f) => f.status === "verified");
       setFactorId(totp?.id ?? null);
@@ -23,6 +26,7 @@ export function VerifyForm() {
   }, [supabase]);
 
   async function submit(e: React.FormEvent) {
+    if (!supabase) { setError("Step-up verification needs Supabase configured on this deployment."); return; }
     e.preventDefault();
     if (!factorId) return;
     setBusy(true);

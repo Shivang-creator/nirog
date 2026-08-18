@@ -28,6 +28,10 @@ export function MfaSetup() {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase.auth.mfa.listFactors();
     const totp = data?.totp?.find((f) => f.status === "verified");
     setVerifiedFactorId(totp?.id ?? null);
@@ -39,6 +43,7 @@ export function MfaSetup() {
   }, [refresh]);
 
   async function startEnroll() {
+    if (!supabase) { setError("Two-factor setup needs Supabase configured on this deployment."); return; }
     setBusy(true);
     setError(null);
     // Clean up any half-finished (unverified) factors first.
@@ -63,6 +68,7 @@ export function MfaSetup() {
   }
 
   async function verify() {
+    if (!supabase) { setError("Two-factor setup needs Supabase configured on this deployment."); return; }
     if (!enrolling) return;
     setBusy(true);
     setError(null);
@@ -90,6 +96,7 @@ export function MfaSetup() {
   }
 
   async function remove() {
+    if (!supabase) { setError("Two-factor setup needs Supabase configured on this deployment."); return; }
     if (!verifiedFactorId) return;
     setBusy(true);
     await supabase.auth.mfa.unenroll({ factorId: verifiedFactorId });

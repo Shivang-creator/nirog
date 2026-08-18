@@ -35,6 +35,14 @@ export function GoogleButton({ label = "Continue with Google" }: { label?: strin
     setLoading(true);
     setError(null);
     const supabase = createClient();
+    if (!supabase) {
+      // Google sign-in needs a real Supabase project. On a demo deployment the
+      // password form drops straight into the workspace, so say that rather
+      // than spinning forever.
+      setLoading(false);
+      setError("Google sign-in needs Supabase configured — use the demo sign-in below.");
+      return;
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },

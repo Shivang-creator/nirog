@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, Pill } from "lucide-react";
+import { ArrowRight, BriefcaseMedical, Pill, Stethoscope } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
@@ -49,24 +49,33 @@ export function MarketingNav() {
           ))}
         </nav>
 
+        {/*
+          Two doors, always visible.
+
+          The nav previously offered "Sign in" and "Start Consultation", both of
+          which led to the clinician's portal — so a patient had no way in from
+          any point on this page. These are labelled by who you are rather than
+          by what you want to do, because that is the only question the site
+          actually needs answered.
+        */}
         <div className="flex items-center gap-1.5">
           <Link
             href="/pharmacy"
-            className="hidden items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-white/60 hover:text-ink sm:inline-flex"
+            className="hidden items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-white/60 hover:text-ink xl:inline-flex"
           >
             <Pill className="size-4" /> Pharmacy
           </Link>
           <Link
-            href="/login"
-            className="hidden rounded-full px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-white/60 hover:text-ink lg:inline-flex"
+            href="/portal"
+            className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-ink shadow-quiet transition-all hover:shadow-lift active:scale-[0.97]"
           >
-            Sign in
+            <BriefcaseMedical className="size-4" /> I&rsquo;m a doctor
           </Link>
           <Link
-            href="/portal"
+            href="/patient"
             className="inline-flex items-center gap-1.5 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.97]"
           >
-            Start Consultation <ArrowRight className="size-4" />
+            <Stethoscope className="size-4" /> I&rsquo;m a patient
           </Link>
         </div>
       </div>

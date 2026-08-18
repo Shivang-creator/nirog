@@ -69,6 +69,7 @@ export function IncomingDock({
   // so it never depends on an RSC refresh reaching this component.
   const refetchPool = useCallback(async () => {
     const supabase = createClient();
+    if (!supabase) return;
     const { data } = await supabase
       .from("QueueEntry")
       .select("id,triage,channel,reason,handover:AriaHandover(redFlags,chiefComplaint)")
@@ -83,6 +84,7 @@ export function IncomingDock({
   useEffect(() => {
     if (!onCall) return;
     const supabase = createClient();
+    if (!supabase) return;
     let channel: ReturnType<typeof supabase.channel> | undefined;
     void refetchPool();
     (async () => {

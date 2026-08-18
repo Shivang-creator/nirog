@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
-import { ArrowRight, Pill, Sparkles, ShieldCheck, Globe2, Radio } from "lucide-react";
+import { ArrowRight, BriefcaseMedical, Globe2, Pill, Radio, ShieldCheck, Sparkles, Stethoscope } from "lucide-react";
 import { HeroVisual, HeroVisualMobile } from "@/components/landing/hero-visual";
 import { Magnetic, EASE } from "@/components/landing/shared";
 
@@ -84,24 +84,38 @@ export function Hero() {
             transition={{ duration: 0.7, ease: EASE, delay: 0.28 }}
             className="mt-9 flex flex-wrap items-center gap-3"
           >
+            {/*
+              The two ways in.
+
+              Everything on this page used to lead to /portal, so a patient
+              arriving at the landing had no route into the product they were
+              being sold. Both doors are now the same size and sit side by side,
+              because the site cannot know which of the two people is reading.
+
+              Neither asks for a sign-in. A reviewer opening this alone has no
+              account and no way to make one, and a demo that stops at a login
+              wall is a demo nobody sees.
+            */}
             <Magnetic className="w-full sm:w-auto">
               <Link
-                href="/portal"
+                href="/patient"
                 className="group inline-flex h-13 w-full items-center justify-center gap-2 rounded-full bg-ink px-8 text-[15px] font-semibold text-white transition-all hover:brightness-110 active:scale-[0.97] sm:w-auto"
               >
-                Start Consultation
+                <Stethoscope className="size-4" />
+                Enter as a patient
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </Magnetic>
             <Magnetic className="w-full sm:w-auto">
               <Link
-                href="/pharmacy"
-                className="inline-flex h-13 w-full items-center justify-center gap-2 rounded-full bg-white px-7 text-[15px] font-semibold text-ink shadow-quiet transition-all hover:shadow-lift active:scale-[0.97] sm:w-auto"
+                href="/portal"
+                className="group inline-flex h-13 w-full items-center justify-center gap-2 rounded-full bg-white px-7 text-[15px] font-semibold text-ink shadow-quiet transition-all hover:shadow-lift active:scale-[0.97] sm:w-auto"
               >
-                <span className="grid size-6 place-items-center rounded-full bg-soft-green text-green">
-                  <Pill className="size-3.5" />
+                <span className="grid size-6 place-items-center rounded-full bg-soft-blue text-blue">
+                  <BriefcaseMedical className="size-3.5" />
                 </span>
-                Partner as a pharmacy
+                Enter as a doctor
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </Magnetic>
           </motion.div>
