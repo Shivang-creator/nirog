@@ -17,8 +17,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAriaContext } from "@/components/aria/AriaProvider";
 import { Dock } from "./Dock";
-import { chat, isConfigured, type Turn } from "@/lib/nirog/aria";
+import { chat, isConfigured } from "@/lib/nirog/aria";
 import { appendTurn, getCase, resetCase, setCase, useCase } from "@/lib/nirog/caseStore";
+import {
+  beginInterview,
+  interviewTurn,
+  summarise,
+  toIntake,
+  type InterviewState,
+} from "@/lib/clinical/interview";
+import type { Region } from "@/lib/clinical/regions";
 
 const USER = { name: "Rahul", greeting: "Good Morning" };
 
@@ -50,9 +58,6 @@ const REACTIONS = {
   restart: "Okay, let's start again from the beginning. What's bothering you?",
 };
 
-const OFFLINE_REPLY =
-  "I can't reach my clinical service right now, so I'd rather not guess. Please try again in a moment.";
-
 export function Home({ patientId }: { patientId: string | null }) {
   const router = useRouter();
   const aria = useAriaContext();
@@ -65,8 +70,11 @@ export function Home({ patientId }: { patientId: string | null }) {
   const [finalising, setFinalising] = useState(false);
   const [recall, setRecall] = useState<{ text: string; when: string }[] | null>(null);
   const [opener, setOpener] = useState<string | null>(null);
+  const [remembered, setRemembered] = useState<Region | null>(null);
   const spokeOpener = useRef(false);
   const turnRef = useRef(0);
+  /** The history she is taking herself. Null until she has a complaint to work from. */
+  const interviewRef = useRef<InterviewState | null>(null);
 
   useEffect(() => {
     aria.setVisible(true);
@@ -91,10 +99,12 @@ export function Home({ patientId }: { patientId: string | null }) {
         const data = (await res.json()) as {
           recall: { text: string; when: string }[];
           opener: string | null;
+          region: Region | null;
         };
         if (cancelled) return;
         setRecall(data.recall);
         setOpener(data.opener);
+        setRemembered(data.region ?? null);
       } catch {
         if (!cancelled) setRecall([]);
       }
@@ -129,6 +139,47 @@ export function Home({ patientId }: { patientId: string | null }) {
     [aria],
   );
 
+  /**
+   * She takes the history herself.
+   *
+   * A structured history is a fixed list of questions asked in a fixed order, so
+   * lib/clinical/interview.ts can ask them with nothing behind it. That is the
+   * same split as everywhere else in this project: the deterministic layer holds
+   * on its own, and the model is the layer that makes it better.
+   *
+   * Nothing here is announced to the patient. She asks the next question, which
+   * from the other side of the screen is all she was ever doing.
+   */
+  const ask = useCallback(
+    (text: string) => {
+      const c = getCase();
+      // The complaint is the first thing they said, not the most recent — this
+      // reads correctly whether she has been asking from the start or has just
+      // picked the interview up mid-conversation.
+      const complaint = c.history.find((h) => h.role === "user")?.text ?? text;
+      const state = interviewRef.current ?? beginInterview(complaint, remembered);
+      const step = interviewTurn(state, text);
+      interviewRef.current = step.state;
+
+      appendTurn({ role: "assistant", text: step.reply });
+      setCase({
+        thinking: false,
+        error: null,
+        intake: toIntake(step.state),
+        complete: step.done,
+        summary: step.done ? summarise(step.state) : null,
+      });
+      aria.say(step.reply);
+
+      if (step.done && !c.complete) {
+        setHandsFree(false);
+        setSession("paused");
+        aria.abortListen();
+      }
+    },
+    [aria, remembered],
+  );
+
   /** One turn: say it, ask the model, record it, speak the answer. */
   const send = useCallback(
     async (text: string) => {
@@ -140,17 +191,11 @@ export function Home({ patientId }: { patientId: string | null }) {
       appendTurn({ role: "user", text: t });
       setCase({ thinking: true, error: null });
 
-      if (!isConfigured()) {
-        setCase({ thinking: false, error: "NEXT_PUBLIC_ARIA_API_URL is not set" });
-        aria.say(OFFLINE_REPLY);
-        return;
-      }
-
-      // Fires instantly and covers the 2–8s the model takes. A face that is
-      // clearly listening and silent reads as a freeze, not a pause.
-      aria.filler();
-
       // Write it to memory in parallel — the consultation must not wait on it.
+      //
+      // This used to sit below the clinical-service check, so with no service
+      // configured the turn returned before it and the row was never written.
+      // What the patient said goes to CockroachDB whoever ends up answering them.
       if (patientId) {
         void fetch("/api/memory/complaint", {
           method: "POST",
@@ -159,10 +204,22 @@ export function Home({ patientId }: { patientId: string | null }) {
         }).catch(() => {});
       }
 
+      if (!isConfigured()) {
+        ask(t);
+        return;
+      }
+
+      // Fires instantly and covers the 2–8s the model takes. A face that is
+      // clearly listening and silent reads as a freeze, not a pause.
+      aria.filler();
+
       try {
         const c = getCase();
         const res = await chat(
-          [...c.history, { role: "user", text: t } as Turn],
+          // appendTurn above already added this turn and the store mutates
+          // synchronously, so re-appending it here sent the backend the
+          // patient's last sentence twice.
+          c.history,
           { name: USER.name },
           c.intake,
           c.candidates,
@@ -194,14 +251,13 @@ export function Home({ patientId }: { patientId: string | null }) {
         if (res.redFlag) setTimeout(() => router.push("/patient/case"), 1200);
       } catch (err) {
         if (turnRef.current !== turn) return;
-        setCase({
-          thinking: false,
-          error: err instanceof Error ? err.message : String(err),
-        });
-        aria.say(OFFLINE_REPLY);
+        // The service is down or slow. She carries on with the interview rather
+        // than telling a patient about our infrastructure.
+        console.warn("[aria] clinical service unavailable, taking the history here", err);
+        ask(t);
       }
     },
-    [aria, patientId, router],
+    [aria, ask, patientId, router],
   );
 
   /*
@@ -306,6 +362,7 @@ export function Home({ patientId }: { patientId: string | null }) {
           onClick={() => {
             turnRef.current++;
             resetCase();
+            interviewRef.current = null;
             setYouSaid("");
             setSession("live");
             setHandsFree(true);

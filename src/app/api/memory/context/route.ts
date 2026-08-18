@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   const patientId = req.nextUrl.searchParams.get("patientId") ?? "";
 
   if (!isPatientId(patientId)) {
-    return NextResponse.json({ recall: [], opener: null, degraded: false });
+    return NextResponse.json({ recall: [], opener: null, region: null, degraded: false });
   }
 
   const now = new Date();
@@ -74,6 +74,7 @@ export async function GET(req: NextRequest) {
   if (outcome.degraded) {
     return NextResponse.json({
       recall: [],
+      region: null,
       degraded: true,
       opener:
         "One thing first. I can't get to your records right now, so I won't " +
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
 
   const history = outcome.value;
   if (history.length === 0) {
-    return NextResponse.json({ recall: [], opener: null, degraded: false });
+    return NextResponse.json({ recall: [], opener: null, region: null, degraded: false });
   }
 
   const recall = history
@@ -118,9 +119,16 @@ export async function GET(req: NextRequest) {
     opener = `${shortWhen(last.occurredAt, now).replace(/^./, (c) => c.toUpperCase())} you told me “${last.rawText}”. What is going on today?`;
   }
 
+  /*
+   * The region she should ask about if the patient's next sentence does not name
+   * one. Only sent when a flag fired, which is the same bar the opener clears —
+   * the last unrelated visit is not evidence about today, and an interview that
+   * adapted to it would be asking lumbar questions about a cough.
+   */
   return NextResponse.json({
     recall,
     opener,
+    region: flag?.region ?? null,
     degraded: false,
     latencyMs: outcome.latencyMs,
   });

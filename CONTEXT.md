@@ -70,18 +70,32 @@ lower back. That is the whole product in one row.
 - Recurrence detection, region inheritance, SBAR assembly
 - Doctor portal runs on in-memory data with zero configuration
 - Demo sign-in drops straight into the workspace
-- **135 offline tests**, 18 live-cluster checks, and `npm run walk`
+- **ARIA takes the whole history with nothing behind her.**
+  `src/lib/clinical/interview.ts` asks the OLDCARTS slots in order, adapts the
+  wording and the red-flag question to the body region, and fills the same
+  intake the model path fills. No network, no key, no model.
+- **166 offline tests**, 18 live-cluster checks, and `npm run walk`
 
 ## What does not work
 
-**ARIA cannot hold a conversation.** She greets, remembers, and speaks, but any
-reply gets *"I can't reach my clinical service right now."*
+**No clinical differential.** The interview is a fixed clinical questionnaire.
+It collects a complete history and hands it over; it does not reason about
+causes, and nothing on any screen claims otherwise.
 
-She needs `NEXT_PUBLIC_ARIA_API_URL`, the Lambda Function URL running
-gpt-oss-120b with RAG over 13,144 conditions. That lives in a teammate's `.env`
-and is not in any repo. **This is the single biggest gap.** Ask him for it, and
-ask whether the Lambda returns CORS headers for a browser origin. On React
-Native that never mattered.
+`NEXT_PUBLIC_ARIA_API_URL` is still unset. It points at a teammate's Lambda
+running gpt-oss-120b with RAG over 13,144 conditions, and when it arrives it
+layers a real differential on top of the interview. **It is no longer a
+blocker** — with the variable unset the conversation runs end to end on the
+deterministic engine, which is the house pattern everywhere else in this repo.
+If it does arrive, check the Lambda returns CORS headers for a browser origin;
+on React Native that never mattered.
+
+**Two bugs this uncovered, both fixed 18 Aug:** the CockroachDB complaint write
+sat *below* the `isConfigured()` early return, so with no Lambda configured
+nothing a patient said was ever written — the memory story was dead at N=1
+while the seeded data still recalled perfectly. And the configured path
+re-appended the user's turn to a history that already contained it, sending the
+backend the same sentence twice.
 
 **Bedrock is blocked.** Every model, every region, both APIs:
 
