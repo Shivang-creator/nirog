@@ -119,11 +119,13 @@ describe("the degraded notice", () => {
   // The wording is the safety property, so it is asserted rather than trusted.
   it("says the history was not checked", () => {
     expect(DEGRADED_NOTICE).toMatch(/could not be reached/i);
-    expect(DEGRADED_NOTICE).toMatch(/not been checked/i);
+    expect(DEGRADED_NOTICE).toMatch(/nobody has checked it/i);
   });
 
   it("tells the reader what they must not conclude", () => {
-    expect(DEGRADED_NOTICE).toMatch(/not a negative finding/i);
+    // The wording changed but the obligation did not: it has to explain that
+    // the missing flag means nobody looked, rather than that nothing is there.
+    expect(DEGRADED_NOTICE).toMatch(/none was looked for/i);
   });
 
   it("never says no history was found", () => {

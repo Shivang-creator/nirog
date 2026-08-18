@@ -61,8 +61,8 @@ describe("SBAR — recurring case", () => {
     expect(s.background.join(" ")).toMatch(/36 days/);
   });
 
-  it("says the link was semantic, not keyword", () => {
-    expect(s.background.join(" ")).toMatch(/semantic similarity, not shared keywords/);
+  it("says the link was by meaning, not by matching words", () => {
+    expect(s.background.join(" ")).toMatch(/Linked by meaning rather than by matching words/);
   });
 
   it("includes family history when there is one", () => {
@@ -143,7 +143,7 @@ describe("SBAR — degraded memory", () => {
   });
 
   it("tells the reader not to treat the missing flag as reassurance", () => {
-    expect(s.assessment.join(" ")).toMatch(/not.*a negative finding/i);
+    expect(s.assessment.join(" ")).toMatch(/none was looked for/i);
   });
 
   it("recommends re-running before acting", () => {

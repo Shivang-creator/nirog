@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 /** Uploads to <bucket>/<ownerId>/<key>-… and reports back the stored path.
- *  Shared by the doctor and pharmacy verification wizards. */
+ *  Used by the clinician verification wizard. */
 export function UploadField({
   ownerId,
   bucket = "doctor-documents",

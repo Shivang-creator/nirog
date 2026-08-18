@@ -7,9 +7,8 @@
  * nobody can skim is a handover nobody reads.
  *
  * Every field here is assembled from rows in the database. No model writes any
- * of it. The optional prose pass in lib/ai/prose.ts may *rephrase* this text,
- * never add to it, so nothing can appear in a handover that did not come from
- * something the patient actually said or a rule that actually fired.
+ * of it, so nothing can appear in a handover that did not come from something
+ * the patient actually said or a rule that actually fired.
  *
  * This file is careful about one thing above all: it does not diagnose. It
  * reports a pattern and hands it to a human. "Three presentations in six weeks"
@@ -98,15 +97,15 @@ export function buildSbar(input: SbarInput): Sbar {
       `${strongest.visitCount} separate presentations involving the ${region} across ${strongest.spanDays} days:`,
     );
     for (const c of strongest.complaints) {
-      background.push(`  ${shortDate(c.occurredAt)} — “${c.rawText}”`);
+      background.push(`  ${shortDate(c.occurredAt)}  “${c.rawText}”`);
     }
     background.push(
-      "These were linked by semantic similarity, not shared keywords — the patient described the same problem differently each time.",
+      "Linked by meaning rather than by matching words. The patient described the same problem differently each time.",
     );
   } else if (sorted.length > 1) {
     background.push(`${sorted.length} complaints on record, no recurring pattern:`);
     for (const c of sorted.slice(0, 5)) {
-      background.push(`  ${shortDate(c.occurredAt)} — “${c.rawText}”`);
+      background.push(`  ${shortDate(c.occurredAt)}  “${c.rawText}”`);
     }
   } else {
     background.push("No prior complaints on record.");
@@ -121,7 +120,7 @@ export function buildSbar(input: SbarInput): Sbar {
 
   if (degraded) {
     assessment.push(
-      "NOT ASSESSED — the patient's history was unavailable when this handover was generated. Do not read the absence of a recurrence flag as a negative finding.",
+      "NOT ASSESSED. The patient's history was unavailable when this was written. No recurrence flag appears because none was looked for.",
     );
   } else if (strongest?.level === "recurrent") {
     assessment.push(

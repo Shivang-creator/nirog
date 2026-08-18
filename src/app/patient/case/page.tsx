@@ -1,25 +1,28 @@
 import Link from "next/link";
 import { query, MEMORY_TIMEOUT_MS } from "@/lib/memory/db";
-import { withMemory } from "@/lib/memory/degrade";
+import { withMemory, DEGRADED_NOTICE } from "@/lib/memory/degrade";
 import { getChart } from "@/lib/memory/queries";
 import { REGION_LABELS } from "@/lib/clinical/regions";
 import { renderSbar } from "@/lib/clinical/sbar";
 import { HideScene } from "@/components/nirog/SceneVisibility";
-import { DEGRADED_NOTICE } from "@/lib/memory/degrade";
 
 export const dynamic = "force-dynamic";
 
 /**
  * The case file.
  *
- * In the mobile app this screen fills up from the live ARIA interview. Here it
- * is fed by memory as well, which is the point of the project: what the patient
- * said months ago is part of the case whether or not they mention it again
- * today, and it is the part a five-minute consultation loses first.
+ * On the phone this is one column you scroll. On a laptop that column looks
+ * lost, so the layout splits: the verdict and the handover sit in the main
+ * column, and the timeline runs beside them where it can be read against the
+ * dates rather than after them.
  */
 
 function fmt(d: Date) {
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 async function demoPatientId() {
@@ -37,229 +40,375 @@ async function demoPatientId() {
 
 export default async function CasePage() {
   const idOutcome = await demoPatientId();
-  const chartOutcome = idOutcome.value
-    ? await getChart(idOutcome.value)
-    : null;
+  const chartOutcome = idOutcome.value ? await getChart(idOutcome.value) : null;
 
   const degraded = idOutcome.degraded || (chartOutcome?.degraded ?? false);
   const chart = chartOutcome?.value ?? null;
   const flag = chart?.flags[0] ?? null;
+  const inherited = chart?.complaints.filter((c) => c.regionSource === "inherited") ?? [];
 
   return (
     <div className="min-h-dvh" style={{ background: "var(--bg)" }}>
       <HideScene />
 
-      <div className="mx-auto w-full max-w-2xl px-5 pt-14 pb-32">
-        <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.14px", color: "var(--gray)" }}>
-          Nirog
-        </p>
-        <h1
-          style={{
-            fontSize: 30, fontWeight: 700, letterSpacing: "-0.9px",
-            lineHeight: "34px", marginTop: 8, color: "var(--ink)",
-          }}
-        >
-          Your case
-          <br />
-          <span style={{ color: "var(--gray3)" }}>file.</span>
-        </h1>
+      <div className="mx-auto w-full max-w-6xl px-6 pt-12 pb-36 lg:px-10 lg:pt-16">
+        {/* ---------- header ---------- */}
+        <header className="flex flex-wrap items-end justify-between gap-6 pb-8">
+          <div>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: "-0.13px",
+                color: "var(--gray)",
+              }}
+            >
+              Nirog
+            </p>
+            <h1
+              className="mt-2"
+              style={{
+                fontSize: 40,
+                fontWeight: 700,
+                letterSpacing: "-1.2px",
+                lineHeight: "42px",
+                color: "var(--ink)",
+              }}
+            >
+              Your case file
+            </h1>
+            <p
+              className="mt-3 max-w-xl"
+              style={{ fontSize: 15, lineHeight: "22px", color: "var(--gray)" }}
+            >
+              Everything you have told ARIA, and what she made of it. Your own
+              words are kept exactly as you said them.
+            </p>
+          </div>
 
-        {/* ---- memory unreachable ---- */}
+          <div className="flex gap-2.5">
+            <Link
+              href="/patient"
+              className="no-select inline-flex items-center"
+              style={{
+                padding: "11px 20px",
+                borderRadius: 999,
+                background: "var(--ink)",
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 600,
+                letterSpacing: "-0.14px",
+                boxShadow: "var(--shadow-ink)",
+              }}
+            >
+              Talk to ARIA
+            </Link>
+            <Link
+              href="/patient/doctors"
+              className="no-select glass-heavy inline-flex items-center"
+              style={{
+                padding: "11px 20px",
+                borderRadius: 999,
+                color: "var(--ink)",
+                fontSize: 14,
+                fontWeight: 600,
+                letterSpacing: "-0.14px",
+              }}
+            >
+              See a doctor
+            </Link>
+          </div>
+        </header>
+
         {degraded && (
           <div
-            className="mt-7 rounded-2xl px-5 py-4"
+            className="rounded-2xl px-6 py-5"
             style={{ background: "#fdf2ec", border: "1px solid #e8d5b5" }}
           >
-            <p className="label" style={{ color: "#9a3412" }}>Memory unreachable</p>
-            <p className="mt-2" style={{ fontSize: 14, lineHeight: "20px", color: "var(--ink)" }}>
+            <p className="label" style={{ color: "#9a3412" }}>
+              Records unreachable
+            </p>
+            <p
+              className="mt-2 max-w-2xl"
+              style={{ fontSize: 15, lineHeight: "22px", color: "var(--ink)" }}
+            >
               {DEGRADED_NOTICE}
             </p>
           </div>
         )}
 
-        {/* ---- recurrence ---- */}
         {!degraded && chart && (
-          <>
-            {flag ? (
-              <div
-                className="mt-7 rounded-2xl px-5 py-5"
-                style={{
-                  background: flag.level === "recurrent" ? "#fdf6ec" : "#f4f5f7",
-                  border: `1px solid ${flag.level === "recurrent" ? "#e8d5b5" : "var(--hairline)"}`,
-                }}
-              >
-                <div className="flex items-baseline justify-between gap-3 flex-wrap">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-8">
+            {/* ---------- left: the verdict, then the handover ---------- */}
+            <div className="flex flex-col gap-6">
+              {flag ? (
+                <section
+                  className="rounded-3xl px-7 py-7"
+                  style={{
+                    background: flag.level === "recurrent" ? "#fdf6ec" : "#fff",
+                    border: `1px solid ${
+                      flag.level === "recurrent" ? "#e8d5b5" : "var(--hairline)"
+                    }`,
+                    boxShadow: "var(--shadow-card)",
+                  }}
+                >
+                  <div className="flex items-baseline justify-between gap-4">
+                    <p
+                      className="label"
+                      style={{
+                        color: flag.level === "recurrent" ? "#b45309" : "#475569",
+                      }}
+                    >
+                      {flag.level === "recurrent"
+                        ? "This keeps coming back"
+                        : "You have raised this before"}
+                    </p>
+                    <p className="tabular" style={{ fontSize: 13, color: "var(--gray3)" }}>
+                      {flag.visitCount} visits over {flag.spanDays} days
+                    </p>
+                  </div>
+
                   <p
+                    className="mt-3"
                     style={{
-                      fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase",
-                      fontWeight: 600,
-                      color: flag.level === "recurrent" ? "#b45309" : "#475569",
+                      fontSize: 26,
+                      fontWeight: 700,
+                      letterSpacing: "-0.7px",
+                      lineHeight: "31px",
+                      color: "var(--ink)",
                     }}
                   >
-                    {flag.level === "recurrent" ? "Recurrence found" : "Repeat presentation"}
+                    {REGION_LABELS[flag.region]}
                   </p>
-                  <p style={{ fontSize: 12, color: "var(--gray3)" }}>
-                    {flag.visitCount} visits · {flag.spanDays} days
+
+                  <p
+                    className="mt-2 max-w-lg"
+                    style={{ fontSize: 15, lineHeight: "22px", color: "var(--gray)" }}
+                  >
+                    You described this {flag.visitCount} separate times without
+                    ever using the same words twice. Searching your notes would
+                    not have connected them.
+                  </p>
+
+                  <p
+                    className="mt-5 pt-4"
+                    style={{
+                      borderTop: "1px solid var(--hairline)",
+                      fontSize: 13,
+                      lineHeight: "19px",
+                      color: "var(--gray)",
+                    }}
+                  >
+                    {flag.rule}. That is a pattern in your record. It is not a
+                    diagnosis, and nothing here has worked out the cause.
+                  </p>
+                </section>
+              ) : (
+                <section
+                  className="rounded-3xl px-7 py-7"
+                  style={{
+                    background: "#f2f7f3",
+                    border: "1px solid var(--hairline)",
+                    boxShadow: "var(--shadow-card)",
+                  }}
+                >
+                  <p className="label" style={{ color: "#3f6b52" }}>
+                    Nothing recurring
+                  </p>
+                  <p
+                    className="mt-3"
+                    style={{
+                      fontSize: 24,
+                      fontWeight: 700,
+                      letterSpacing: "-0.6px",
+                      color: "var(--ink)",
+                    }}
+                  >
+                    No pattern in your {chart.complaints.length} complaint
+                    {chart.complaints.length === 1 ? "" : "s"}
+                  </p>
+                  <p
+                    className="mt-2 max-w-lg"
+                    style={{ fontSize: 15, lineHeight: "22px", color: "var(--gray)" }}
+                  >
+                    Your history was reached and checked. This is an answer, not
+                    a blank.
+                  </p>
+                </section>
+              )}
+
+              {/* ---------- handover ---------- */}
+              <section
+                className="rounded-3xl px-7 py-7"
+                style={{
+                  background: "#fff",
+                  border: "1px solid var(--hairline)",
+                  boxShadow: "var(--shadow-card)",
+                }}
+              >
+                <div className="flex items-baseline justify-between gap-4">
+                  <p className="label">What the doctor receives</p>
+                  <p style={{ fontSize: 12, color: "var(--gray3)" }}>SBAR</p>
+                </div>
+                <pre
+                  className="mt-4 overflow-x-auto"
+                  style={{
+                    fontSize: 13,
+                    lineHeight: "20px",
+                    whiteSpace: "pre-wrap",
+                    fontFamily: "var(--font-mono), ui-monospace, monospace",
+                    color: "var(--ink)",
+                  }}
+                >
+                  {renderSbar(chart.sbar)}
+                </pre>
+                <ul
+                  className="mt-5 space-y-1 pt-4"
+                  style={{ borderTop: "1px solid var(--hairline)" }}
+                >
+                  {chart.sbar.provenance.map((p) => (
+                    <li key={p} style={{ fontSize: 12.5, color: "var(--gray3)" }}>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+
+            {/* ---------- right: the timeline ---------- */}
+            <aside className="flex flex-col gap-6">
+              <section
+                className="rounded-3xl px-7 py-7"
+                style={{
+                  background: "#fff",
+                  border: "1px solid var(--hairline)",
+                  boxShadow: "var(--shadow-card)",
+                }}
+              >
+                <div className="flex items-baseline justify-between gap-4">
+                  <p className="label">Everything on record</p>
+                  <p className="tabular" style={{ fontSize: 12, color: "var(--gray3)" }}>
+                    {chart.complaints.length}
                   </p>
                 </div>
 
-                <p className="mt-2" style={{ fontSize: 16, color: "var(--ink)" }}>
-                  {REGION_LABELS[flag.region]} — you have raised this{" "}
-                  {flag.visitCount} times.
-                </p>
-
-                <ol className="mt-4 space-y-3">
-                  {flag.complaints.map((c) => (
-                    <li key={c.id} className="flex gap-3" style={{ fontSize: 14, lineHeight: "20px" }}>
-                      <span
-                        className="shrink-0 tabular"
-                        style={{ width: 86, color: "var(--gray3)" }}
-                      >
-                        {fmt(c.occurredAt)}
-                      </span>
-                      <span style={{ fontStyle: "italic", color: "var(--ink)" }}>
-                        &ldquo;{c.rawText}&rdquo;
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-
-                <p
-                  className="mt-4 pt-3"
-                  style={{ borderTop: "1px solid var(--hairline)", fontSize: 12, color: "var(--gray)" }}
-                >
-                  Linked by meaning, not by matching words. {flag.rule}. This is a
-                  pattern in your record, not a diagnosis.
-                </p>
-              </div>
-            ) : (
-              <div
-                className="mt-7 rounded-2xl px-5 py-5"
-                style={{ background: "#f2f7f3", border: "1px solid var(--hairline)" }}
-              >
-                <p
-                  style={{
-                    fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase",
-                    fontWeight: 600, color: "#3f6b52",
-                  }}
-                >
-                  No recurrence
-                </p>
-                <p className="mt-2" style={{ fontSize: 16, color: "var(--ink)" }}>
-                  Nothing in your {chart.complaints.length} recorded complaint
-                  {chart.complaints.length === 1 ? "" : "s"} forms a pattern.
-                </p>
-                <p className="mt-2" style={{ fontSize: 13, color: "var(--gray)" }}>
-                  That is a real answer — your history was reached and checked.
-                </p>
-              </div>
-            )}
-
-            {/* ---- everything on record ---- */}
-            {chart.complaints.length > 0 && (
-              <section className="mt-10">
-                <p className="label">Everything on record</p>
-                <ul
-                  className="mt-3"
-                  style={{ borderTop: "1px solid var(--hairline)" }}
-                >
-                  {chart.complaints.map((c) => (
-                    <li
-                      key={c.id}
-                      className="py-4"
-                      style={{ borderBottom: "1px solid var(--hairline)" }}
-                    >
-                      <div className="flex gap-3 flex-wrap sm:flex-nowrap">
+                <ol className="mt-5">
+                  {chart.complaints.map((c, i) => {
+                    const partOfFlag = flag?.complaints.some((f) => f.id === c.id);
+                    return (
+                      <li key={c.id} className="relative flex gap-4 pb-6 last:pb-0">
+                        {/* the thread */}
+                        {i < chart.complaints.length - 1 && (
+                          <span
+                            aria-hidden
+                            className="absolute"
+                            style={{
+                              left: 5,
+                              top: 16,
+                              bottom: 0,
+                              width: 1,
+                              background: "var(--hairline)",
+                            }}
+                          />
+                        )}
                         <span
-                          className="shrink-0 tabular"
-                          style={{ width: 86, fontSize: 13, color: "var(--gray3)" }}
-                        >
-                          {fmt(c.occurredAt)}
-                        </span>
+                          aria-hidden
+                          className="relative mt-1.5 shrink-0"
+                          style={{
+                            width: 11,
+                            height: 11,
+                            borderRadius: 6,
+                            background: partOfFlag ? "#b45309" : "var(--gray3)",
+                            outline: partOfFlag ? "3px solid #fdf6ec" : "none",
+                          }}
+                        />
                         <div className="min-w-0 flex-1">
-                          <p style={{ fontSize: 15, fontStyle: "italic", lineHeight: "21px", color: "var(--ink)" }}>
+                          <p
+                            className="tabular"
+                            style={{ fontSize: 12.5, color: "var(--gray3)" }}
+                          >
+                            {fmt(c.occurredAt)}
+                          </p>
+                          <p
+                            className="mt-1"
+                            style={{
+                              fontSize: 15,
+                              fontStyle: "italic",
+                              lineHeight: "21px",
+                              color: "var(--ink)",
+                            }}
+                          >
                             &ldquo;{c.rawText}&rdquo;
                           </p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2" style={{ fontSize: 12, color: "var(--gray3)" }}>
+                          <div
+                            className="mt-2 flex flex-wrap items-center gap-2"
+                            style={{ fontSize: 12, color: "var(--gray3)" }}
+                          >
                             <span
                               style={{
-                                padding: "2px 7px", borderRadius: 6,
+                                padding: "2px 8px",
+                                borderRadius: 999,
                                 border: "1px solid var(--hairline)",
                               }}
                             >
                               {REGION_LABELS[c.bodyRegion]}
                             </span>
-                            {c.regionSource === "inherited" && c.inheritedFromText && (
+                            {c.regionSource === "inherited" && (
                               <span style={{ color: "#b45309" }}>
-                                you did not name a body part — matched to &ldquo;
-                                {c.inheritedFromText}&rdquo;
+                                matched from an earlier visit
                               </span>
                             )}
                             {!c.hasEmbedding && (
-                              <span style={{ color: "#9a3412" }}>
-                                not indexed — invisible to recall
-                              </span>
+                              <span style={{ color: "#9a3412" }}>not indexed</span>
                             )}
                           </div>
                         </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                      </li>
+                    );
+                  })}
+                </ol>
               </section>
-            )}
 
-            {/* ---- SBAR ---- */}
-            <section className="mt-10">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="label">Doctor handover · SBAR</p>
-                <p style={{ fontSize: 12, color: "var(--gray3)" }}>
-                  assembled from your record
-                </p>
-              </div>
-              <pre
-                className="mt-3 overflow-x-auto rounded-2xl px-5 py-4"
-                style={{
-                  background: "#fff", border: "1px solid var(--hairline)",
-                  fontSize: 12.5, lineHeight: "19px", whiteSpace: "pre-wrap",
-                  fontFamily: "var(--font-mono), ui-monospace, monospace",
-                  color: "var(--ink)",
-                }}
-              >
-                {renderSbar(chart.sbar)}
-              </pre>
-              <ul className="mt-3 space-y-1">
-                {chart.sbar.provenance.map((p) => (
-                  <li key={p} style={{ fontSize: 12, color: "var(--gray3)" }}>{p}</li>
-                ))}
-              </ul>
-            </section>
-          </>
+              {/* The inheritance case, spelled out where it happened. */}
+              {inherited.length > 0 && (
+                <section
+                  className="rounded-3xl px-7 py-6"
+                  style={{ background: "#fdf6ec", border: "1px solid #e8d5b5" }}
+                >
+                  <p className="label" style={{ color: "#b45309" }}>
+                    One of these named no body part
+                  </p>
+                  {inherited.map((c) => (
+                    <div key={c.id} className="mt-3">
+                      <p
+                        style={{
+                          fontSize: 15,
+                          fontStyle: "italic",
+                          lineHeight: "21px",
+                          color: "var(--ink)",
+                        }}
+                      >
+                        &ldquo;{c.rawText}&rdquo;
+                      </p>
+                      <p
+                        className="mt-2"
+                        style={{ fontSize: 13, lineHeight: "19px", color: "var(--gray)" }}
+                      >
+                        You said &ldquo;back&rdquo;, meaning it had returned. On
+                        its own that sentence points at nothing. Read next to{" "}
+                        <span style={{ fontStyle: "italic" }}>
+                          &ldquo;{c.inheritedFromText}&rdquo;
+                        </span>{" "}
+                        it is obviously your lower back, so that is where it was
+                        filed.
+                      </p>
+                    </div>
+                  ))}
+                </section>
+              )}
+            </aside>
+          </div>
         )}
-
-        <div className="mt-10 flex flex-wrap gap-3">
-          <Link
-            href="/patient"
-            className="inline-flex items-center no-select"
-            style={{
-              padding: "12px 20px", borderRadius: 999, background: "var(--ink)",
-              color: "#fff", fontSize: 15, fontWeight: 600, letterSpacing: "-0.15px",
-              boxShadow: "var(--shadow-ink)",
-            }}
-          >
-            Talk to ARIA
-          </Link>
-          <Link
-            href="/patient/doctors"
-            className="inline-flex items-center no-select glass-heavy"
-            style={{
-              padding: "12px 20px", borderRadius: 999, color: "var(--ink)",
-              fontSize: 15, fontWeight: 600, letterSpacing: "-0.15px",
-            }}
-          >
-            See a doctor
-          </Link>
-        </div>
       </div>
     </div>
   );

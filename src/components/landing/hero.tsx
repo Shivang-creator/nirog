@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
-import { ArrowRight, BriefcaseMedical, Globe2, Pill, Radio, ShieldCheck, Sparkles, Stethoscope } from "lucide-react";
+import { ArrowRight, BriefcaseMedical, Globe2, Radio, ShieldCheck, Sparkles, Stethoscope } from "lucide-react";
 import { HeroVisual, HeroVisualMobile } from "@/components/landing/hero-visual";
-import { Magnetic, EASE } from "@/components/landing/shared";
+import { EASE } from "@/components/landing/shared";
 
 export function Hero() {
   const ref = useRef<HTMLElement>(null);
@@ -71,53 +71,71 @@ export function Hero() {
             transition={{ duration: 0.7, ease: EASE, delay: 0.18 }}
             className="mt-7 max-w-lg text-lg leading-relaxed text-ink-soft sm:text-xl"
           >
-            AI-powered clinical intelligence helping doctors deliver faster,
-            safer, more accessible care across rural India.{" "}
-            <span className="font-semibold text-ink">ARIA</span> listens to
-            patients in their own language, structures every case, and hands it
-            to a licensed doctor — care that continues long after the call ends.
+            A patient describes what is wrong, in their own words and their own
+            language. <span className="font-semibold text-ink">ARIA</span> asks
+            the follow-up questions a nurse would, then writes it up for a
+            doctor. She also remembers. If you said something like this six
+            weeks ago, she brings it up before you do.
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: EASE, delay: 0.28 }}
-            className="mt-9 flex flex-wrap items-center gap-3"
+            className="mt-9 flex flex-col gap-3 sm:flex-row"
           >
             {/*
-              The two ways in.
+              The two doors.
 
-              Everything on this page used to lead to /portal, so a patient
-              arriving at the landing had no route into the product they were
-              being sold. Both doors are now the same size and sit side by side,
-              because the site cannot know which of the two people is reading.
-
-              Neither asks for a sign-in. A reviewer opening this alone has no
-              account and no way to make one, and a demo that stops at a login
-              wall is a demo nobody sees.
+              Every button on this page used to lead to /portal, so a patient
+              reading it had no way into the thing being described to them.
+              These are cards rather than buttons because the choice is the
+              first thing the page asks for, and neither one asks for an
+              account.
             */}
-            <Magnetic className="w-full sm:w-auto">
-              <Link
-                href="/patient"
-                className="group inline-flex h-13 w-full items-center justify-center gap-2 rounded-full bg-ink px-8 text-[15px] font-semibold text-white transition-all hover:brightness-110 active:scale-[0.97] sm:w-auto"
-              >
-                <Stethoscope className="size-4" />
-                Enter as a patient
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </Magnetic>
-            <Magnetic className="w-full sm:w-auto">
-              <Link
-                href="/portal"
-                className="group inline-flex h-13 w-full items-center justify-center gap-2 rounded-full bg-white px-7 text-[15px] font-semibold text-ink shadow-quiet transition-all hover:shadow-lift active:scale-[0.97] sm:w-auto"
-              >
-                <span className="grid size-6 place-items-center rounded-full bg-soft-blue text-blue">
-                  <BriefcaseMedical className="size-3.5" />
+            <Link
+              href="/patient"
+              className="group relative flex flex-1 flex-col justify-between overflow-hidden rounded-3xl bg-ink p-6 text-white transition-all hover:brightness-110 active:scale-[0.99] sm:min-w-[15rem]"
+            >
+              <div>
+                <span className="grid size-11 place-items-center rounded-2xl bg-white/12">
+                  <Stethoscope className="size-5" />
                 </span>
-                Enter as a doctor
+                <p className="mt-5 font-display text-2xl font-extrabold tracking-tight">
+                  I&rsquo;m a patient
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-white/70">
+                  Talk to ARIA. She listens, asks, and remembers what you told
+                  her last time.
+                </p>
+              </div>
+              <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold">
+                Start talking
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </Magnetic>
+              </span>
+            </Link>
+
+            <Link
+              href="/portal"
+              className="group relative flex flex-1 flex-col justify-between overflow-hidden rounded-3xl bg-white p-6 text-ink shadow-quiet transition-all hover:shadow-lift active:scale-[0.99] sm:min-w-[15rem]"
+            >
+              <div>
+                <span className="grid size-11 place-items-center rounded-2xl bg-soft-blue text-blue">
+                  <BriefcaseMedical className="size-5" />
+                </span>
+                <p className="mt-5 font-display text-2xl font-extrabold tracking-tight">
+                  I&rsquo;m a doctor
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">
+                  Open the queue. Every case arrives already written up, with
+                  the history attached.
+                </p>
+              </div>
+              <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-blue">
+                Open the workspace
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </Link>
           </motion.div>
 
           <motion.div

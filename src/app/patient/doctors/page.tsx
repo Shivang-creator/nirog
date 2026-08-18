@@ -6,14 +6,39 @@ export const dynamic = "force-dynamic";
 /**
  * Where the handover goes.
  *
- * The patient's side of the handoff. The doctor's side of the same moment is
- * /portal — same product, same database, the other chair.
+ * The patient's half of the handoff. The doctor's half of the same moment is
+ * /portal, and a reviewer who follows one of these through lands there looking
+ * at the patient they were just being.
  */
 
 const DOCTORS = [
-  { name: "Dr. Ananya Rao", spec: "General Physician", exp: 11, rating: 4.8, fee: 249, online: true },
-  { name: "Dr. Imran Sheikh", spec: "Orthopaedics", exp: 14, rating: 4.7, fee: 399, online: true },
-  { name: "Dr. Kavya Menon", spec: "Internal Medicine", exp: 8, rating: 4.9, fee: 299, online: false },
+  {
+    name: "Dr. Ananya Rao",
+    spec: "General Physician",
+    exp: 11,
+    rating: 4.8,
+    fee: 249,
+    online: true,
+    langs: "Hindi, English",
+  },
+  {
+    name: "Dr. Imran Sheikh",
+    spec: "Orthopaedics",
+    exp: 14,
+    rating: 4.7,
+    fee: 399,
+    online: true,
+    langs: "Hindi, Urdu, English",
+  },
+  {
+    name: "Dr. Kavya Menon",
+    spec: "Internal Medicine",
+    exp: 8,
+    rating: 4.9,
+    fee: 299,
+    online: false,
+    langs: "Malayalam, English",
+  },
 ];
 
 export default function DoctorsPage() {
@@ -21,102 +46,176 @@ export default function DoctorsPage() {
     <div className="min-h-dvh" style={{ background: "var(--bg)" }}>
       <HideScene />
 
-      <div className="mx-auto w-full max-w-2xl px-5 pt-14 pb-32">
-        <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.14px", color: "var(--gray)" }}>
-          Nirog
-        </p>
-        <h1
-          style={{
-            fontSize: 30, fontWeight: 700, letterSpacing: "-0.9px",
-            lineHeight: "34px", marginTop: 8, color: "var(--ink)",
-          }}
-        >
-          Doctors
-          <br />
-          <span style={{ color: "var(--gray3)" }}>who already read your case.</span>
-        </h1>
-        <p className="mt-3" style={{ fontSize: 14, lineHeight: "20px", color: "var(--gray)" }}>
-          Your handover goes with you. They open the consultation with your
-          history already on screen — including anything you have raised before.
-        </p>
-
-        <ul className="mt-8" style={{ borderTop: "1px solid var(--hairline)" }}>
-          {DOCTORS.map((d) => (
-            <li
-              key={d.name}
-              className="flex items-center gap-4 py-4"
-              style={{ borderBottom: "1px solid var(--hairline)" }}
+      <div className="mx-auto w-full max-w-6xl px-6 pt-12 pb-36 lg:px-10 lg:pt-16">
+        <header className="flex flex-wrap items-end justify-between gap-6 pb-8">
+          <div>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: "-0.13px",
+                color: "var(--gray)",
+              }}
             >
-              <div
-                className="grid place-items-center shrink-0 relative"
-                style={{
-                  width: 44, height: 44, borderRadius: 22,
-                  background: "#e4eefc", color: "#0a84ff",
-                  fontSize: 15, fontWeight: 700,
-                }}
-              >
-                {d.name.split(" ")[1]?.[0] ?? "D"}
-                {d.online && (
-                  <span
-                    aria-hidden
-                    className="absolute"
-                    style={{
-                      right: -1, bottom: -1, width: 12, height: 12, borderRadius: 6,
-                      background: "#34c759", border: "2px solid var(--bg)",
-                    }}
-                  />
-                )}
-              </div>
+              Nirog
+            </p>
+            <h1
+              className="mt-2"
+              style={{
+                fontSize: 40,
+                fontWeight: 700,
+                letterSpacing: "-1.2px",
+                lineHeight: "42px",
+                color: "var(--ink)",
+              }}
+            >
+              Doctors
+            </h1>
+            <p
+              className="mt-3 max-w-xl"
+              style={{ fontSize: 15, lineHeight: "22px", color: "var(--gray)" }}
+            >
+              Your case goes ahead of you. They open the call with your history
+              already on screen, so the first two minutes are not spent
+              repeating yourself.
+            </p>
+          </div>
 
-              <div className="min-w-0 flex-1">
-                <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>{d.name}</p>
-                <p className="mt-0.5 tabular" style={{ fontSize: 13, color: "var(--gray3)" }}>
-                  {d.spec} · {d.exp} yrs · {d.rating} ★
+          <Link
+            href="/patient/case"
+            className="no-select glass-heavy inline-flex items-center"
+            style={{
+              padding: "11px 20px",
+              borderRadius: 999,
+              color: "var(--ink)",
+              fontSize: 14,
+              fontWeight: 600,
+              letterSpacing: "-0.14px",
+            }}
+          >
+            Back to my case
+          </Link>
+        </header>
+
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {DOCTORS.map((d) => (
+            <article
+              key={d.name}
+              className="flex flex-col justify-between rounded-3xl px-6 py-6"
+              style={{
+                background: "#fff",
+                border: "1px solid var(--hairline)",
+                boxShadow: "var(--shadow-card)",
+              }}
+            >
+              <div>
+                <div className="flex items-start justify-between gap-3">
+                  <div
+                    className="relative grid shrink-0 place-items-center"
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: 26,
+                      background: "#e4eefc",
+                      color: "#0a84ff",
+                      fontSize: 17,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {d.name.split(" ")[1]?.[0] ?? "D"}
+                    {d.online && (
+                      <span
+                        aria-hidden
+                        className="absolute"
+                        style={{
+                          right: -1,
+                          bottom: -1,
+                          width: 14,
+                          height: 14,
+                          borderRadius: 7,
+                          background: "#34c759",
+                          border: "2.5px solid #fff",
+                        }}
+                      />
+                    )}
+                  </div>
+                  <span
+                    className="tabular"
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      background: d.online ? "#f2f7f3" : "var(--bg)",
+                      color: d.online ? "#3f6b52" : "var(--gray3)",
+                    }}
+                  >
+                    {d.online ? "Online now" : "Back tomorrow"}
+                  </span>
+                </div>
+
+                <p
+                  className="mt-4"
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 700,
+                    letterSpacing: "-0.4px",
+                    color: "var(--ink)",
+                  }}
+                >
+                  {d.name}
+                </p>
+                <p className="mt-1" style={{ fontSize: 14, color: "var(--gray)" }}>
+                  {d.spec}
+                </p>
+                <p
+                  className="tabular mt-2"
+                  style={{ fontSize: 13, color: "var(--gray3)" }}
+                >
+                  {d.exp} years · {d.rating} ★
+                </p>
+                <p className="mt-1" style={{ fontSize: 13, color: "var(--gray3)" }}>
+                  Speaks {d.langs}
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="tabular" style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
+              <div
+                className="mt-6 flex items-center justify-between pt-5"
+                style={{ borderTop: "1px solid var(--hairline)" }}
+              >
+                <span
+                  className="tabular"
+                  style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)" }}
+                >
                   ₹{d.fee}
                 </span>
                 <Link
                   href="/portal"
                   className="no-select"
                   style={{
-                    padding: "8px 16px", borderRadius: 999, background: "var(--ink)",
-                    color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "-0.13px",
+                    padding: "10px 22px",
+                    borderRadius: 999,
+                    background: "var(--ink)",
+                    color: "#fff",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    letterSpacing: "-0.14px",
                   }}
                 >
                   Call
                 </Link>
               </div>
-            </li>
+            </article>
           ))}
-        </ul>
-
-        {/*
-          The seam between the two halves of the product, said out loud. A
-          reviewer following "Call" lands in the clinician's workspace looking
-          at the same patient they were just being — which is the fastest way to
-          see that one database is serving both sides.
-        */}
-        <p className="mt-6" style={{ fontSize: 12.5, lineHeight: "18px", color: "var(--gray3)" }}>
-          Calling opens the clinician&rsquo;s workspace, so you can see the other
-          side of the same consultation.
-        </p>
-
-        <div className="mt-10">
-          <Link
-            href="/patient/case"
-            className="inline-flex items-center no-select glass-heavy"
-            style={{
-              padding: "12px 20px", borderRadius: 999, color: "var(--ink)",
-              fontSize: 15, fontWeight: 600, letterSpacing: "-0.15px",
-            }}
-          >
-            Back to my case
-          </Link>
         </div>
+
+        <p
+          className="mt-8 max-w-2xl"
+          style={{ fontSize: 13.5, lineHeight: "20px", color: "var(--gray3)" }}
+        >
+          Calling opens the clinician&rsquo;s side of Nirog, so you can see the
+          same consultation from the other chair. Same database, same patient.
+        </p>
       </div>
     </div>
   );

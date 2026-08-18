@@ -76,8 +76,8 @@ export async function GET(req: NextRequest) {
       recall: [],
       degraded: true,
       opener:
-        "One thing before we start — I can't reach your records right now, " +
-        "so I won't be able to compare this with your previous visits.",
+        "One thing first. I can't get to your records right now, so I won't " +
+        "be able to tell you if this has come up before.",
     });
   }
 
@@ -102,20 +102,20 @@ export async function GET(req: NextRequest) {
     const region = REGION_LABELS[flag.region].toLowerCase();
     const first = flag.complaints[0];
     opener =
-      `Before we start — I have you down for ${flag.visitCount} visits about your ` +
+      `Before we start. You have been in ${flag.visitCount} times about your ` +
       `${region} in the last ${flag.spanDays} days. ` +
-      `The first time, ${shortWhen(first.occurredAt, now)}, you said “${first.rawText}”. ` +
-      `Is it the same thing again?`;
+      `${shortWhen(first.occurredAt, now).replace(/^./, (c) => c.toUpperCase())} you said “${first.rawText}”. ` +
+      `Is this the same thing?`;
   } else if (flag?.level === "watch") {
     const region = REGION_LABELS[flag.region].toLowerCase();
     opener =
-      `I see you were here about your ${region} ${shortWhen(
+      `You were in about your ${region} ${shortWhen(
         flag.complaints[flag.complaints.length - 1].occurredAt,
         now,
-      )}. Is that what brings you back?`;
+      )}. Is that why you are back?`;
   } else {
     const last = history[history.length - 1];
-    opener = `Last time you were here, ${shortWhen(last.occurredAt, now)}, you mentioned “${last.rawText}”. What's going on today?`;
+    opener = `${shortWhen(last.occurredAt, now).replace(/^./, (c) => c.toUpperCase())} you told me “${last.rawText}”. What is going on today?`;
   }
 
   return NextResponse.json({

@@ -81,6 +81,6 @@ export async function withMemory<T>(
  * It names what is unknown and tells the reader what they must not conclude.
  */
 export const DEGRADED_NOTICE =
-  "This patient's history could not be reached, so it has not been checked. " +
-  "Treat this as an unverified first presentation — the absence of a recurrence " +
-  "flag below is not a negative finding.";
+  "This patient's history could not be reached, so nobody has checked it. " +
+  "Treat what follows as a first presentation that has not been verified. " +
+  "No recurrence flag appears below because none was looked for.";

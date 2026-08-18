@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, BriefcaseMedical, Pill, Stethoscope } from "lucide-react";
+import { ArrowRight, BriefcaseMedical, Stethoscope } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
@@ -59,12 +59,6 @@ export function MarketingNav() {
           actually needs answered.
         */}
         <div className="flex items-center gap-1.5">
-          <Link
-            href="/pharmacy"
-            className="hidden items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-white/60 hover:text-ink xl:inline-flex"
-          >
-            <Pill className="size-4" /> Pharmacy
-          </Link>
           <Link
             href="/portal"
             className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-ink shadow-quiet transition-all hover:shadow-lift active:scale-[0.97]"
