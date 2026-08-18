@@ -147,3 +147,32 @@ CREATE INDEX IF NOT EXISTS recall_event_patient_time_idx
 
 CREATE INDEX IF NOT EXISTS recall_event_degraded_idx
   ON recall_event (degraded, created_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- Call signalling
+-- ---------------------------------------------------------------------------
+--
+-- Two browsers cannot start a WebRTC call until they have swapped an offer, an
+-- answer and a handful of ICE candidates, and they need somewhere to leave
+-- those for each other. The previous web app used Supabase Realtime; this build
+-- has no Supabase, and adding a second managed service to relay four small
+-- messages would be a strange thing to do while sitting on a distributed
+-- database that already holds everything else.
+--
+-- So the offer sits in CockroachDB with the complaints. Peers append rows and
+-- read what the other one appended; the media itself never touches this table,
+-- only the introductions. Rows are ephemeral by nature and are swept on read.
+CREATE TABLE IF NOT EXISTS call_signal (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room       STRING NOT NULL,
+  -- 'doctor' or 'patient'. A peer reads everything it did not write itself.
+  from_role  STRING NOT NULL,
+  -- The SDP or ICE candidate, verbatim, as the browser produced it.
+  payload    JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- The only read this table serves: everything in one room since a moment,
+-- oldest first, so an answer is never applied before the offer it answers.
+CREATE INDEX IF NOT EXISTS call_signal_room_time_idx
+  ON call_signal (room, created_at ASC);
