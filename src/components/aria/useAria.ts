@@ -59,6 +59,19 @@ export interface AriaState {
   speaking: boolean;
   /** True while the mic is open. */
   listening: boolean;
+  /**
+   * The mic has closed and the definitive transcription is still running.
+   *
+   * This is the state the first web port lost, and losing it broke the whole
+   * conversation. The final pass over the audio takes one to three seconds
+   * AFTER `listening` goes false, and the hands-free loop treated that window
+   * as free: it reopened the mic, micStart() bumped MIC.token, and the
+   * in-flight transcription of the sentence just spoken was discarded by its
+   * own token check. The patient's words evaporated, nothing was ever sent,
+   * and she sat there "listening" forever. The phone gates its loop on
+   * exactly this flag (index.tsx: setFinalising(!on && !aborted)).
+   */
+  finalising: boolean;
   /** The line currently on screen, streamed word by word. */
   caption: string;
   /** Whether the realistic GLB loaded, or we are on the procedural stand-in. */
@@ -88,6 +101,7 @@ export function useAria(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
     ready: false,
     speaking: false,
     listening: false,
+    finalising: false,
     caption: "",
     realistic: false,
     sttBlocked: false,
@@ -98,7 +112,16 @@ export function useAria(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
    * can show words appearing as they speak rather than after they stop.
    */
   const [heard, setHeard] = useState<string>("");
-  const heardResolver = useRef<((text: string) => void) | null>(null);
+  /**
+   * Where a finished sentence goes. One mutable slot, registered by the screen
+   * that owns the conversation — the phone passes this as the onStt prop.
+   *
+   * The first port wrapped this in a promise instead, and a promise is a thing
+   * that can be lost: every listen() overwrote the previous resolver, so two
+   * calls racing meant a transcript with nobody waiting for it. A handler that
+   * is simply *called* cannot be stranded.
+   */
+  const onSttRef = useRef<((text: string, final: boolean) => void) | null>(null);
 
   useEffect(() => {
     function onMessage(e: MessageEvent) {
@@ -126,24 +149,23 @@ export function useAria(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
           setState((s) => ({ ...s, caption: m.text ?? "" }));
           break;
         case "listening":
-          setState((s) => ({ ...s, listening: !!m.on }));
-          // An aborted mic never produces an stt event, so release the waiter here
-          // or listen() hangs forever on a cancelled turn.
-          if (!m.on && m.aborted) {
-            heardResolver.current?.("");
-            heardResolver.current = null;
-          }
+          setState((s) => ({
+            ...s,
+            listening: !!m.on,
+            // Closed without "aborted" means the final pass is running and the
+            // definitive stt event is on its way; hold the loop for it. An
+            // aborted mic was thrown away and will never answer — don't wait.
+            finalising: !m.on && !m.aborted,
+          }));
           break;
 
         // Transcription arrives on its own channel, not on `listening`.
-        // Partials (final:false) stream into the dock as the user speaks; only
-        // the final one resolves the promise and ends the turn.
+        // Partials (final:false) stream into the dock as the user speaks; the
+        // final one ends the turn, through whoever registered onStt.
         case "stt":
           setHeard(m.text ?? "");
-          if (m.final) {
-            heardResolver.current?.(m.text ?? "");
-            heardResolver.current = null;
-          }
+          if (m.final) setState((s) => ({ ...s, finalising: false }));
+          onSttRef.current?.(m.text ?? "", !!m.final);
           break;
 
         case "sttError": {
@@ -158,10 +180,9 @@ export function useAria(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
           setState((s) => ({
             ...s,
             listening: false,
+            finalising: false,
             sttBlocked: s.sttBlocked || fatal,
           }));
-          heardResolver.current?.("");
-          heardResolver.current = null;
           break;
         }
         case "log":
@@ -175,6 +196,20 @@ export function useAria(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, []);
+
+  /*
+   * A final that never arrives must not wedge the conversation forever. The
+   * transcription request inside the scene is already bounded at 20s; this is
+   * the belt to that suspender, and the phone carries the same watchdog.
+   */
+  useEffect(() => {
+    if (!state.finalising) return;
+    const t = setTimeout(
+      () => setState((s) => ({ ...s, finalising: false })),
+      25_000,
+    );
+    return () => clearTimeout(t);
+  }, [state.finalising]);
 
   const bridge = useCallback((): AriaBridge | null => {
     const w = iframeRef.current?.contentWindow as
@@ -220,15 +255,18 @@ export function useAria(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
     [bridge],
   );
 
-  /** Open the mic and resolve with the final transcript ("" if cancelled). */
-  const listen = useCallback((): Promise<string> => {
-    const b = bridge();
-    if (!b) return Promise.resolve("");
-    return new Promise<string>((resolve) => {
-      heardResolver.current = resolve;
-      b.listen();
-    });
+  /** Open the mic. What is heard arrives through the onStt handler. */
+  const listen = useCallback(() => {
+    bridge()?.listen();
   }, [bridge]);
+
+  /** Register the one place a finished sentence is delivered to. */
+  const onStt = useCallback(
+    (cb: ((text: string, final: boolean) => void) | null) => {
+      onSttRef.current = cb;
+    },
+    [],
+  );
 
   const stopListen = useCallback(() => {
     bridge()?.stopListen();
@@ -247,6 +285,7 @@ export function useAria(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
     hush,
     setMood,
     listen,
+    onStt,
     stopListen,
     abortListen,
   };
