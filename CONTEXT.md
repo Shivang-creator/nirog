@@ -66,39 +66,39 @@ lower back. That is the whole product in one row.
 - She reads the patient's history before greeting them and opens by naming it
 - **Amazon Polly** gives her a voice: `Kajal`, en-IN neural, ~400 ms
 - **Amazon Transcribe** streaming gives her ears: en-IN, PCM at 16 kHz
+- **ARIA holds the conversation herself now.** The external Lambda is gone:
+  `/api/aria/chat` runs `openai.gpt-oss-120b` on Bedrock in this app
+  (reasoning stripped, low effort, ~2.5–5 s a turn), `/api/aria/handover`
+  writes the SBAR at medium effort, `/api/aria/health` reports liveness.
+  `NEXT_PUBLIC_ARIA_API_URL=/api/aria`. No CORS question, nothing external.
+- **Bedrock works.** The project moved to the second teammate's AWS account
+  (18 Aug 2026), which has no free-plan restriction. Real Titan vectors, real
+  gpt-oss. The demo patients are embedded with Titan; the ~400 volume patients
+  deliberately keep offline vectors (recall is per-patient, so the spaces
+  never mix inside one).
+- The full voice loop is verified end to end on this account: Polly speaks a
+  complaint into a WAV, `/api/transcribe` streams it back as the same words.
 - Every turn is written back to CockroachDB with an embedding
 - Recurrence detection, region inheritance, SBAR assembly
 - Doctor portal runs on in-memory data with zero configuration
-- Demo sign-in drops straight into the workspace
-- **135 offline tests**, 18 live-cluster checks, and `npm run walk`
+- Demo sign-in drops straight into the workspace — and since 18 Aug the
+  portal's actions, sign-ups and onboarding work in demo mode too instead of
+  throwing
+- **139 offline tests**, 18 live-cluster checks, and `npm run walk`
 
 ## What does not work
 
-**ARIA cannot hold a conversation.** She greets, remembers, and speaks, but any
-reply gets *"I can't reach my clinical service right now."*
+**Production still points at the old AWS account.** The Vercel env vars carry
+the old keys, so deployed ARIA falls back to the offline embedder and cannot
+chat. Copy `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `BEDROCK_CHAT_MODEL`
+and `NEXT_PUBLIC_ARIA_API_URL` from the working `.env.local` into Vercel.
 
-She needs `NEXT_PUBLIC_ARIA_API_URL`, the Lambda Function URL running
-gpt-oss-120b with RAG over 13,144 conditions. That lives in a teammate's `.env`
-and is not in any repo. **This is the single biggest gap.** Ask him for it, and
-ask whether the Lambda returns CORS headers for a browser origin. On React
-Native that never mattered.
-
-**Bedrock is blocked.** Every model, every region, both APIs:
-
-```
-ValidationException: Operation not allowed
-```
-
-This is not IAM and not model access. The API reports
-`entitlement=AVAILABLE, auth=NOT_AUTHORIZED`, the free-plan upgrade went
-through, and the Model access page has been retired in favour of auto-enable on
-first invoke. It is an account-level restriction and it probably needs AWS
-Support.
-
-**It does not block the submission.** The rules ask for at least one AWS
-service. Polly and Transcribe both work and both are load-bearing, so the
-requirement is met twice over. Bedrock would be nice, not necessary. Do not let
-it eat the day.
+**One thing to know about the embedders.** Cosine distances are only
+comparable within one embedding space: Titan compresses short sentences into
+0.5–1.0 where the offline embedder spreads them over 0.1–1.0. That is why the
+thresholds are per-provider now (see below) — and why re-seeding after
+switching embedders matters. If recall ever looks dead after an embedder
+change, check `complaint.embed_model` before touching the thresholds.
 
 ---
 
@@ -243,19 +243,21 @@ AWS_REGION=us-west-2
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 BEDROCK_EMBED_MODEL=amazon.titan-embed-text-v2:0
-
-# missing, and the reason ARIA cannot talk back
-NEXT_PUBLIC_ARIA_API_URL=
+BEDROCK_CHAT_MODEL=openai.gpt-oss-120b-1:0
+NEXT_PUBLIC_ARIA_API_URL=/api/aria
 ```
 
-The same variables are set on Vercel for production and preview.
+The same variables are set on Vercel for production and preview — but the AWS
+keys there are still the old account's and need replacing (see "What does not
+work").
 
 **Cluster:** `project-nirog`, CockroachDB v26.2.5, AWS Mumbai (ap-south-1).
 Free trial, $400 credits, expires 17 Sep 2026.
 
-**IAM user `nirog-memory`** holds Bedrock, Polly and Transcribe. It cannot read
-service quotas or account details, so deeper AWS diagnosis needs
-`ReadOnlyAccess` attached.
+**IAM user `nirog-app`** (on the current AWS account) holds exactly what the
+app uses: `bedrock:InvokeModel` scoped to the Titan embed and gpt-oss-120b
+models, plus `AmazonPollyFullAccess` and `AmazonTranscribeFullAccess`. The old
+account's `nirog-memory` user is no longer referenced anywhere.
 
 ---
 
@@ -263,7 +265,7 @@ service quotas or account details, so deeper AWS diagnosis needs
 
 ```bash
 npm run dev
-npm test              # 135 offline tests, no credentials needed
+npm test              # 139 offline tests, no credentials needed
 npm run walk          # crawls the live product and reports anything broken
 npm run verify        # checks CockroachDB and Bedrock connectivity
 npm run test:e2e      # 18 checks against the real cluster
@@ -295,16 +297,21 @@ errors. It found most of the bugs listed above.
 | Polly | `src/app/api/speak/route.ts` |
 | Transcribe | `src/app/api/transcribe/route.ts` |
 | Memory API | `src/app/api/memory/` |
+| ARIA chat + handover (gpt-oss on Bedrock) | `src/app/api/aria/`, `src/lib/ai/converse.ts` |
 
-If you change `RECALL_THRESHOLD` (0.55) or `INHERIT_THRESHOLD` (0.40), a test
-will fail first. That is deliberate. Read what it was protecting before updating
-it.
+The recall and inheritance thresholds are per embedding space:
+`0.85 / 0.68` for Titan, `0.55 / 0.40` for the offline fallback, selected by
+the recorded provider (`recallThresholdFor` / `inheritThresholdFor`). Change
+any of the four and a test fails first. That is deliberate. Read what it was
+protecting before updating it.
 
 ---
 
 ## What is left
 
-1. **Get the ARIA Lambda URL from the teammate.** Everything else is polish.
+1. **Update the Vercel env vars to the new AWS account** (keys,
+   `BEDROCK_CHAT_MODEL`, `NEXT_PUBLIC_ARIA_API_URL=/api/aria`). Until then
+   production cannot chat and embeds offline.
 2. Wire the doctor's patient view to read the same CockroachDB memory, so what
    ARIA hears appears in the clinician's chart. This is the link that makes it
    one product instead of two.
