@@ -73,6 +73,8 @@ export function Home({ patientId }: { patientId: string | null }) {
   /** Dismissable once — she should say the mic is dead, not nag about it. */
   const [micNoticeSeen, setMicNoticeSeen] = useState(false);
   const spokeOpener = useRef(false);
+  /** Set once she has actually produced sound — proof audio is allowed. */
+  const heardHerSpeak = useRef(false);
   const turnRef = useRef(0);
   /** The history she is taking herself. Null until she has a complaint to work from. */
   const interviewRef = useRef<InterviewState | null>(null);
@@ -135,17 +137,24 @@ export function Home({ patientId }: { patientId: string | null }) {
      * ARIA", the line that names their history was wiped mid-flight, and the one
      * thing this product exists to say never got said.
      *
-     * `unlocked` means a click has happened, so audio will actually play and the
-     * greeting has been triggered. `speaking` false means it has finished. Only
+     * The gesture cannot be detected from here: the scene fills the screen, so a
+     * tap lands inside the iframe and the parent window never sees a pointerdown.
+     * What can be observed is her voice. Once she has spoken at all, audio is
+     * allowed and the greeting has started; when she stops, it has finished. Only
      * then is the line worth spending.
      */
-    if (!aria.unlocked || aria.speaking) return;
+    if (!heardHerSpeak.current || aria.speaking) return;
     const t = setTimeout(() => {
       spokeOpener.current = true;
       aria.say(opener);
     }, 700);
     return () => clearTimeout(t);
-  }, [aria, opener, aria.unlocked, aria.speaking, aria.ready]);
+  }, [aria, opener, aria.speaking, aria.ready]);
+
+  // Her voice is the only reliable signal that audio was allowed at all.
+  useEffect(() => {
+    if (aria.speaking) heardHerSpeak.current = true;
+  }, [aria.speaking]);
 
   const react = useCallback(
     (line: string) => {
