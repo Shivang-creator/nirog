@@ -60,13 +60,13 @@ export function MarketingNav() {
         */}
         <div className="flex items-center gap-1.5">
           <Link
-            href="/portal"
+            href="/login"
             className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-ink shadow-quiet transition-all hover:shadow-lift active:scale-[0.97]"
           >
             <BriefcaseMedical className="size-4" /> I&rsquo;m a doctor
           </Link>
           <Link
-            href="/patient"
+            href="/patient-login"
             className="inline-flex items-center gap-1.5 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.97]"
           >
             <Stethoscope className="size-4" /> I&rsquo;m a patient

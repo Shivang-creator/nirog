@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
-  ArrowRight,
   ShieldCheck,
   Lock,
   Eye,
   FileHeart,
-  Server,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 
@@ -102,46 +100,6 @@ export function Closing() {
               </div>
             </Reveal>
           </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="relative px-6 pb-24">
-        <div className="mx-auto max-w-5xl">
-          <Reveal from="scale">
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-ink px-8 py-20 text-center text-white sm:px-16">
-              <div className="pointer-events-none absolute -left-16 -top-16 size-80 rounded-full bg-blue/30 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-24 -right-10 size-80 rounded-full bg-aria/25 blur-3xl" />
-              <div className="pointer-events-none absolute left-1/2 top-0 size-72 -translate-x-1/2 rounded-full bg-green/15 blur-3xl" />
-              <span className="relative inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-lblue">
-                Live demo
-              </span>
-              <h2 className="relative mt-5 font-display text-4xl font-extrabold leading-[1.04] tracking-tight sm:text-6xl">
-                Step into today&rsquo;s queue.
-              </h2>
-              <p className="relative mx-auto mt-4 max-w-lg text-white/65">
-                Sign in and review a waiting patient — voice intake to filed care
-                plan — on realistic demo data.
-              </p>
-              <div className="relative mt-9 flex flex-wrap items-center justify-center gap-3">
-                <Link
-                  href="/portal"
-                  className="inline-flex h-13 items-center gap-2 rounded-full bg-white px-8 text-[15px] font-semibold text-ink transition-transform hover:bg-white/90 active:scale-[0.97]"
-                >
-                  Enter the workspace <ArrowRight className="size-4" />
-                </Link>
-                <Link
-                  href="/signup"
-                  className="inline-flex h-13 items-center rounded-full px-7 text-[15px] font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-                >
-                  Create a clinician account
-                </Link>
-              </div>
-              <p className="relative mt-7 inline-flex items-center gap-2 text-xs text-white/40">
-                <Server className="size-3.5" /> ananya.rao@nirog.health · nirog-demo
-              </p>
-            </div>
-          </Reveal>
         </div>
       </section>
 
