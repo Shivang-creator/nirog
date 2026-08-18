@@ -208,6 +208,7 @@ export function useCall(
   const start = useCallback(async () => {
     if (startedRef.current) return;
     startedRef.current = true;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -223,32 +224,13 @@ export function useCall(
     }
     setStatusBoth("waiting");
 
-    /*
-     * Confirm the room is reachable before claiming to be in it. A first poll
-     * that fails means the database is unreachable, and a patient staring at a
-     * camera preview that will never connect to anything is worse than being
-     * told so.
-     */
     rtcConfRef.current = await iceConfig();
-    /*
-     * Start listening from *now*, deliberately deaf to anything already in the
-     * room.
-     *
-     * The first version replayed the last minute of signals on joining, which
-     * meant a room used earlier handed the new arrival a stale offer: it built a
-     * peer connection for a call that no longer existed, tore it down when the
-     * next stale row arrived, and never survived long enough to finish a DTLS
-     * handshake. ICE would report itself connected while the connection as a
-     * whole sat at "connecting" forever.
-     *
-     * Nothing is lost by ignoring the past. A peer already waiting is found by
-     * the "hello" below, which is exactly what it is for.
-     */
-    cursorRef.current = new Date().toISOString();
+
     try {
+      // No `since`: the server answers with the cluster's own clock, which is
+      // the only clock the rows are stamped by.
       const res = await fetch(
-        `/api/call/signal?room=${encodeURIComponent(room)}&role=${role}` +
-          `&since=${encodeURIComponent(cursorRef.current)}`,
+        `/api/call/signal?room=${encodeURIComponent(room)}&role=${role}`,
         { cache: "no-store" }
       );
       if (!res.ok) throw new Error(String(res.status));
