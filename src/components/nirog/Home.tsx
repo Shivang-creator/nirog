@@ -67,7 +67,6 @@ export function Home({ patientId }: { patientId: string | null }) {
   const [handsFree, setHandsFree] = useState(true);
   const [youSaid, setYouSaid] = useState("");
   const [level] = useState(0);
-  const [finalising, setFinalising] = useState(false);
   const [recall, setRecall] = useState<{ text: string; when: string }[] | null>(null);
   const [opener, setOpener] = useState<string | null>(null);
   const [remembered, setRemembered] = useState<Region | null>(null);
@@ -300,29 +299,65 @@ export function Home({ patientId }: { patientId: string | null }) {
    * Gated on `speaking` going false rather than on the reply arriving —
    * otherwise she transcribes her own voice.
    */
+  /*
+   * The loop only ever OPENS the mic. What was said comes back through onStt
+   * below — the same split as the phone, where this effect is index.tsx:353.
+   *
+   * `finalising` is the gate that makes the whole conversation work. The mic
+   * closes one to three seconds before the definitive transcription lands, and
+   * an earlier version treated that window as free time: it reopened the mic,
+   * which superseded the in-flight transcription, which threw away the
+   * sentence the patient had just finished saying. She then "listened" forever
+   * because no turn was ever sent.
+   */
   useEffect(() => {
     if (session !== "live" || !handsFree) return;
     // No microphone in this browser. Reopening it would fail again in 450ms,
     // for as long as the page is open. She waits for typing instead.
     if (aria.sttBlocked) return;
-    if (aria.speaking || aria.listening || kase.thinking || finalising) return;
-    const t = setTimeout(() => {
-      void (async () => {
-        const heard = await aria.listen();
-        setFinalising(false);
-        if (heard) void send(heard);
-      })();
-    }, 450);
+    if (aria.speaking || aria.listening || aria.finalising || kase.thinking) return;
+    const t = setTimeout(() => aria.listen(), 450); // let the room settle
     return () => clearTimeout(t);
-  }, [aria, session, handsFree, kase.thinking, finalising, send]);
+  }, [aria, session, handsFree, kase.thinking]);
+
+  /*
+   * The patient's words, arriving as they say them — the phone's onStt prop.
+   *
+   * Partials are a growing, self-correcting draft and only touch the caption.
+   * The final pass is the only one that has heard every word, so it is the
+   * only one that becomes a turn. An empty final is a mic that opened on a
+   * quiet room: show nothing, send nothing, and the loop simply reopens.
+   *
+   * Registered through a ref so the handler always sees the current send()
+   * without re-registering on every render.
+   */
+  const sendRef = useRef(send);
+  useEffect(() => {
+    sendRef.current = send;
+  }, [send]);
+  useEffect(() => {
+    aria.onStt((text, final) => {
+      if (!final) {
+        setYouSaid(text);
+        return;
+      }
+      if (!text.trim()) {
+        setYouSaid("");
+        return;
+      }
+      setYouSaid(text);
+      void sendRef.current(text);
+    });
+    return () => aria.onStt(null);
+  }, [aria]);
 
   // Caption precedence, exactly as the app resolves it.
   const caption = aria.speaking
     ? { who: "ARIA" as const, text: aria.caption, dots: aria.caption ? null : ("wait" as const) }
     : aria.listening
       ? { who: "You" as const, text: aria.heard || youSaid, dots: "live" as const }
-      : finalising
-        ? { who: "You" as const, text: youSaid, dots: "wait" as const }
+      : aria.finalising
+        ? { who: "You" as const, text: aria.heard || youSaid, dots: "wait" as const }
         : youSaid
           ? { who: "You" as const, text: youSaid, dots: null }
           : kase.thinking
@@ -412,7 +447,7 @@ export function Home({ patientId }: { patientId: string | null }) {
         caption={caption}
         level={level}
         listening={aria.listening}
-        finalising={finalising}
+        finalising={aria.finalising}
         handsFree={handsFree}
         prompts={kase.complete ? QA_PROMPTS : ARIA_PROMPTS}
         complete={kase.complete}
@@ -424,12 +459,11 @@ export function Home({ patientId }: { patientId: string | null }) {
         }
         onSend={(t) => void send(t)}
         onMicToggle={() => {
+          // Finalising or thinking means a turn is already in flight; a mic
+          // press now would only orphan it. Same guard as the phone.
+          if (aria.finalising || kase.thinking || aria.speaking) return;
           if (aria.listening) aria.stopListen();
-          else
-            void (async () => {
-              const heard = await aria.listen();
-              if (heard) void send(heard);
-            })();
+          else aria.listen();
         }}
         onHandsFreeToggle={() => setHandsFree((h) => !h)}
         onDismissError={() => {
