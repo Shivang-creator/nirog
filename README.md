@@ -8,6 +8,8 @@ a patient said months ago, in whatever words they happened to use that day.
 Built for the [CockroachDB × AWS Hackathon](https://cockroachdb-ai.devpost.com/)
 — agents that remember.
 
+**Live:** https://nirog-memory.vercel.app — no account, no key, no setup.
+
 ---
 
 ## The problem
@@ -59,7 +61,7 @@ npm run dev                    # http://localhost:3000
 optional — see [Running without AWS](#running-without-aws).
 
 ```bash
-npm test                       # 122 tests, offline, ~0.4s
+npm test                       # 170 tests, offline, ~0.7s
 npm run db:volume              # load a realistic clinic (~400 patients)
 npm run db:explain             # query plans, distances, audit counts
 npm run test:e2e               # 18 checks against the live cluster
@@ -155,13 +157,37 @@ ranking complaints with *no vector at all* as perfect matches, at the top of a
 doctor's screen. The guard had been concealing it. `tests/recall-mapping.test.ts`
 now pins the behaviour.
 
-### 3. ccloud CLI
+### 3. ccloud CLI (agent-ready)
 
-Used to confirm cluster topology and version from the terminal:
+`npm run cluster:status` (`scripts/cluster-status.mts`) asks the Cloud control
+plane what it knows about the database, in the JSON every `ccloud` command
+emits precisely so something other than a person can read it:
 
-```bash
-ccloud cluster list -o json
 ```
+CockroachDB Cloud — control plane
+
+  project-nirog
+    id           bc90285d-0906-4884-95fa-34d266ac56f6
+    version      v26.2.5
+    plan         BASIC on AWS
+    regions      ap-south-1
+    state        CREATED
+
+  Recent control-plane activity (5 shown)
+    2026-08-17T19:13:05Z  AUDIT_LOG_ACTION_USER_LOGIN
+    2026-08-17T19:17:52Z  AUDIT_LOG_ACTION_CREATE_CLUSTER
+    2026-08-17T19:18:22Z  AUDIT_LOG_ACTION_CREATE_SQL_USER
+    2026-08-17T19:25:42Z  AUDIT_LOG_ACTION_MCP_OAUTH_CONSENT
+```
+
+`npm run verify` asks the database about itself over SQL; this asks the
+control plane about the database. The audit call is the half of the story
+`recall_event` cannot tell: one table records every read of a patient's
+history, the audit log records every administrative action against the cluster
+holding it, and a clinical system should be able to answer both questions.
+
+(The last line is also the receipt for the MCP server above — the consent it
+recorded on 17 August is what connected Claude Code to this cluster.)
 
 ---
 
@@ -170,15 +196,31 @@ ccloud cluster list -o json
 ### Amazon Bedrock — Titan Text Embeddings V2
 
 `amazon.titan-embed-text-v2:0`, 1024 dimensions, `normalize: true`. It produces
-every vector in the recall path, and it is the only model in the system.
+every vector in the recall path.
 
 Region `us-west-2`. Credentials are read from the environment and never
 committed.
 
+### Amazon Bedrock — gpt-oss-120b (ARIA's conversation)
+
+ARIA, the voice intake nurse, converses with the patient using
+`openai.gpt-oss-120b` via Bedrock (`src/lib/ai/converse.ts`, served from
+`/api/aria/chat`). The model's job ends at conversation: what enters the
+clinical record is the patient's own words, and the handover is assembled
+deterministically from rows — see the next section for why that boundary
+exists.
+
+### Amazon Polly + Amazon Transcribe (ARIA's voice)
+
+ARIA speaks through Polly (`/api/speak`) and hears through Transcribe
+(`/api/transcribe`), giving the intake a hands-free voice loop on top of the
+same memory layer.
+
 ### Why there is no LLM in the clinical output
 
-An earlier plan had gpt-oss-120b rewriting the SBAR handover into prose. It was
-cut, and the reason is worth stating rather than quietly dropping.
+An earlier plan had gpt-oss-120b also rewriting the SBAR handover into prose.
+That part was cut, and the reason is worth stating rather than quietly
+dropping.
 
 Every line of the handover is either something the patient actually said or the
 output of a rule you can check by hand. A language model rewriting that text
@@ -188,10 +230,11 @@ claim the patient never made. How somebody describes their pain is itself
 information, and a handover that launders it into medical register has destroyed
 the thing it was carrying.
 
-So the generative model earns no place here. Bedrock does the one job that cannot
-be done by arithmetic — turning language into a vector so that two different
-sentences can be recognised as one complaint — and the parts a doctor reads are
-assembled deterministically from rows.
+So the generative model earns no place in the handover. It talks; it does not
+chart. Embeddings do the one job that cannot be done by arithmetic — turning
+language into a vector so that two different sentences can be recognised as one
+complaint — and the parts a doctor reads are assembled deterministically from
+rows.
 
 Using more of a sponsor's product than the problem needs would score better and
 build worse.
@@ -239,7 +282,7 @@ build worse.
 | Layer | Job | Can it be wrong? |
 |---|---|---|
 | **AI** | *find* candidates, *phrase* prose | Yes — so it never decides |
-| **Deterministic core** | *decide* what counts as a recurrence | No — pure functions, 122 tests |
+| **Deterministic core** | *decide* what counts as a recurrence | No — pure functions, 170 tests |
 
 No model decides whether a recurrence exists. The rule is arithmetic: **3 or more
 separate visits naming one body region within 90 days**. A doctor asking "why did
@@ -298,8 +341,9 @@ handling the case where memory was down. The UI renders amber instead of green,
 the SBAR assessment reads `NOT ASSESSED` rather than `no pattern found`, and the
 event is written to `recall_event.degraded` for audit.
 
-**To see it:** point `DATABASE_URL` at an unreachable host and reload `/doctor`.
-The page renders, says what it does not know, and tells you what not to conclude.
+**To see it:** point `DATABASE_URL` at an unreachable host and reload
+`/patient/case`. The page renders, says what it does not know, and tells you
+what not to conclude.
 
 ---
 
@@ -334,7 +378,7 @@ back loudly and records which vectors are real.
 ## Tests
 
 ```
-122 tests · offline · deterministic · ~0.4s
+170 tests · offline · deterministic · ~0.7s
 ```
 
 | File | Covers |
@@ -396,10 +440,12 @@ src/
   lib/
     clinical/     regions.ts · recurrence.ts · resolve.ts · sbar.ts
     memory/       schema.sql · db.ts · degrade.ts · recall.ts · queries.ts
-    ai/           embed.ts
-  app/            / · /intake · /doctor · /doctor/[id] · /method
+    ai/           embed.ts · converse.ts
+    aria/         nurseHtml.ts (the 3D nurse scene)
+  app/            / · /onboarding · /patient · /patient/case · /portal
+                  /call · /method · /api/aria/{chat,handover,health}
 scripts/          migrate · seed · seed-volume · explain
-tests/            122 tests
+tests/            170 tests
 ```
 
 ## Licence
