@@ -125,6 +125,21 @@ export function ConsultStage({
           </div>
         )}
 
+        {call.status === "no-signalling" && (
+          <div className="absolute inset-0 grid place-items-center px-8 text-center">
+            <div className="flex max-w-sm flex-col items-center gap-2 text-white/80">
+              <Signal className="size-7 text-amber" />
+              <p className="text-sm font-medium">Calling is not configured here</p>
+              <p className="text-xs leading-relaxed text-white/50">
+                The consultation room needs a signalling service, which this
+                deployment does not have. Your camera has been released. The
+                rest of the consult — the handover, the memory and filing the
+                encounter — works as normal.
+              </p>
+            </div>
+          </div>
+        )}
+
         {inCall && !call.camOn && !call.remoteStream && (
           <div className="absolute inset-0 grid place-items-center">
             <div className="flex flex-col items-center gap-3 text-white/70">
@@ -209,8 +224,9 @@ export function ConsultStage({
         {!inCall ? (
           <button
             type="button"
+            disabled={call.status === "no-signalling"}
             onClick={() => void call.start()}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-green px-6 text-sm font-semibold text-white transition-transform active:scale-95"
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-green px-6 text-sm font-semibold text-white transition-transform active:scale-95 disabled:pointer-events-none disabled:opacity-40"
           >
             <Phone className="size-5" />
             {call.status === "ended" ? "Reconnect" : "Connect"}
