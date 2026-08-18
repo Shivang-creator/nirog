@@ -42,3 +42,7 @@ next-env.d.ts
 
 # but the template must ship — it is the setup instructions
 !.env.example
+
+# Local submission drafts — never publish
+SUBMISSION.md
+SUBMISSION-DRAFT.md

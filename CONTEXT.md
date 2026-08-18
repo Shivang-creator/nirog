@@ -95,12 +95,13 @@ lower back. That is the whole product in one row.
 
 ## What does not work
 
-**Production still points at the old AWS account.** The Vercel env vars carry
-the old keys, so deployed ARIA falls back to the offline embedder and to the
-deterministic interview. Copy `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
-`BEDROCK_CHAT_MODEL` and `NEXT_PUBLIC_ARIA_API_URL` from the working
-`.env.local` into Vercel. **This is the one remaining human action before
-submitting** — everything else runs.
+**Production runs on the new AWS account since 18 Aug ~18:30 IST.** The old
+keys were removed from Vercel, the new ones set for production and preview,
+`BEDROCK_CHAT_MODEL` and `NEXT_PUBLIC_ARIA_API_URL=/api/aria` added, and the
+app redeployed with a fresh build. Verified live: /api/aria/health reports the
+in-app Bedrock backend, a chat turn answers, /api/speak returns Kajal audio,
+and `BASE_URL=https://nirog-memory.vercel.app npm run walk` passes clean —
+including Rahul's four remembered visits and demo sign-in.
 
 **No clinical differential without Bedrock.** With the model unreachable the
 interview is a fixed clinical questionnaire: it takes a complete history and
@@ -270,9 +271,8 @@ BEDROCK_CHAT_MODEL=openai.gpt-oss-120b-1:0
 NEXT_PUBLIC_ARIA_API_URL=/api/aria
 ```
 
-The same variables are set on Vercel for production and preview — but the AWS
-keys there are still the old account's and need replacing (see "What does not
-work").
+The same variables are set on Vercel for production and preview, on the new
+account's keys since 18 Aug evening.
 
 **Cluster:** `project-nirog`, CockroachDB v26.2.5, AWS Mumbai (ap-south-1).
 Free trial, $400 credits, expires 17 Sep 2026.
@@ -332,9 +332,26 @@ protecting before updating it.
 
 ## What is left
 
-1. **Update the Vercel env vars to the new AWS account** (keys,
-   `BEDROCK_CHAT_MODEL`, `NEXT_PUBLIC_ARIA_API_URL=/api/aria`). Until then
-   production cannot chat and embeds offline.
+1. ~~Update the Vercel env vars to the new AWS account~~ Done, 18 Aug ~18:30
+   IST — deployed and verified live (see "What works right now").
+1b. ~~Wire the doctor's chart to CockroachDB memory~~ Done, 18 Aug ~21:30. The
+   portal patient page reads the same rows through the same `getChart` call;
+   `lib/memory/link.ts` holds the explicit portal↔memory join. Rahul's seeded
+   handover was rewritten to the lumbar episode, because it had been opening an
+   unrelated emergency directly under a memory panel reporting three lumbar
+   visits.
+1c. **The bug that mattered most, 18 Aug ~23:30.** On the deployed site the
+   patient could not leave /patient at all — no Link, no `location.href`, no
+   form submit — while buttons worked and the console was clean. The 14.9MB
+   avatar was served `max-age=0` and took 101s at 147KB/s, starving every other
+   request on the connection. Now fetched at low priority, cut to 6.2MB (WebP,
+   512px, all 16 morphs intact) and served immutable. It never reproduced
+   locally. Fetching routes never caught it; clicking through the deployed site
+   did.
+1d. All three CockroachDB tools are now evidenced, not asserted. The Cloud audit
+   log carries `AUDIT_LOG_ACTION_MCP_OAUTH_CONSENT` (17 Aug 19:25 UTC) — the
+   receipt for the MCP session — and `npm run cluster:status` reads topology and
+   that audit log through ccloud.
 2. Wire the doctor's patient view to read the same CockroachDB memory, so what
    ARIA hears appears in the clinician's chart. This is the link that makes it
    one product instead of two.
