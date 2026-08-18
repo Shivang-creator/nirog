@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isAuthConfigured } from "@/lib/supabase/server";
 import { getDataSource, type SaveEncounterInput } from "@/lib/data/source";
 
 const prescriptionSchema = z.object({
@@ -47,6 +47,15 @@ export type SaveResult =
   | { ok: false; error: string };
 
 async function requireDoctor() {
+  /*
+   * Demo sign-in (see (auth)/actions.ts): with no Supabase project configured
+   * there is no session to check, and the same branch that lets sign-in through
+   * must let the workspace act — otherwise every button in the portal throws
+   * while the pages around it render fine. The data behind it is the in-memory
+   * source, so nothing real is reachable from this branch.
+   */
+  if (!isAuthConfigured()) return null;
+
   const supabase = await createClient();
   const {
     data: { user },
