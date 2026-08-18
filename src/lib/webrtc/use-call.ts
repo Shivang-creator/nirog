@@ -77,6 +77,8 @@ export function useCall(
   const streamRef = useRef<MediaStream | null>(null);
   const statusRef = useRef<CallStatus>("idle");
   const startedRef = useRef(false);
+  /** Announce once. A second hello would ask the doctor to offer all over again. */
+  const announcedRef = useRef(false);
   const camOnRef = useRef(camOn);
   const pendingIce = useRef<RTCIceCandidateInit[]>([]);
 
@@ -132,6 +134,24 @@ export function useCall(
   }, []);
 
   const makeOffer = useCallback(async () => {
+    /*
+     * Do not restart a negotiation that is already under way.
+     *
+     * Both peers announce with "hello", and the patient answers an incoming
+     * hello with one of its own so that join order does not matter. That reply
+     * used to bring another offer back, which built a fresh RTCPeerConnection
+     * and abandoned the one halfway through its DTLS handshake — so ICE would
+     * report itself connected while the connection never finished, forever.
+     */
+    const live = pcRef.current;
+    if (
+      live &&
+      (live.signalingState === "have-local-offer" ||
+        live.connectionState === "connecting" ||
+        live.connectionState === "connected")
+    ) {
+      return;
+    }
     const pc = newPc();
     setStatusBoth("connecting");
     const offer = await pc.createOffer();
@@ -147,8 +167,9 @@ export function useCall(
           if (role === "doctor") {
             // Re-offer unless we're already live with this peer.
             if (statusRef.current !== "connected") await makeOffer();
-          } else if (statusRef.current === "waiting") {
-            // Late-joining doctor announced — reply so they offer.
+          } else if (statusRef.current === "waiting" && !announcedRef.current) {
+            // Late-joining doctor announced — reply once so they offer.
+            announcedRef.current = true;
             send({ kind: "hello", from: role });
           }
         } else if (payload.kind === "offer" && role === "patient" && payload.sdp) {
@@ -170,6 +191,7 @@ export function useCall(
             pendingIce.current.push(payload.candidate);
           }
         } else if (payload.kind === "bye") {
+          announcedRef.current = false;
           setRemoteStream(null);
           pcRef.current?.close();
           pcRef.current = null;
@@ -208,9 +230,25 @@ export function useCall(
      * told so.
      */
     rtcConfRef.current = await iceConfig();
+    /*
+     * Start listening from *now*, deliberately deaf to anything already in the
+     * room.
+     *
+     * The first version replayed the last minute of signals on joining, which
+     * meant a room used earlier handed the new arrival a stale offer: it built a
+     * peer connection for a call that no longer existed, tore it down when the
+     * next stale row arrived, and never survived long enough to finish a DTLS
+     * handshake. ICE would report itself connected while the connection as a
+     * whole sat at "connecting" forever.
+     *
+     * Nothing is lost by ignoring the past. A peer already waiting is found by
+     * the "hello" below, which is exactly what it is for.
+     */
+    cursorRef.current = new Date().toISOString();
     try {
       const res = await fetch(
-        `/api/call/signal?room=${encodeURIComponent(room)}&role=${role}`,
+        `/api/call/signal?room=${encodeURIComponent(room)}&role=${role}` +
+          `&since=${encodeURIComponent(cursorRef.current)}`,
         { cache: "no-store" }
       );
       if (!res.ok) throw new Error(String(res.status));
@@ -227,6 +265,7 @@ export function useCall(
     }
 
     // Announce, then keep asking what the other side said.
+    announcedRef.current = true;
     send({ kind: "hello", from: role });
     pollRef.current = setInterval(async () => {
       try {
@@ -270,6 +309,7 @@ export function useCall(
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = null;
     startedRef.current = false;
+    announcedRef.current = false;
   }, []);
 
   const end = useCallback(() => {
