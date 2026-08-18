@@ -9,6 +9,7 @@ interface PatientOption {
   id: string;
   name: string;
   complaintCount: number;
+  synthetic: boolean;
 }
 
 /** Suggested wordings, so a judge testing alone can reproduce the demo. */
@@ -31,18 +32,38 @@ export function IntakeForm({ patients }: { patients: PatientOption[] }) {
           <label htmlFor="patientId" className="label block mb-2">
             Patient
           </label>
+          {/*
+            Grouped so the three demo cases sit at the top. With four hundred
+            generated patients in the list, an ungrouped select buries the only
+            rows anyone testing this actually wants.
+          */}
           <select
             id="patientId"
             name="patientId"
             required
-            defaultValue={patients[0]?.id ?? ""}
+            defaultValue={patients.find((p) => !p.synthetic)?.id ?? patients[0]?.id ?? ""}
             className="w-full sm:w-80 rounded-md border border-rule bg-panel px-3 py-2 text-[14px]"
           >
-            {patients.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.complaintCount} on record)
-              </option>
-            ))}
+            <optgroup label="Demo patients">
+              {patients
+                .filter((p) => !p.synthetic)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.complaintCount} on record)
+                  </option>
+                ))}
+            </optgroup>
+            {patients.some((p) => p.synthetic) && (
+              <optgroup label="Synthetic filler">
+                {patients
+                  .filter((p) => p.synthetic)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.complaintCount} on record)
+                    </option>
+                  ))}
+              </optgroup>
+            )}
           </select>
         </div>
 

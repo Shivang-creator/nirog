@@ -35,6 +35,7 @@ export default async function Intake() {
             id: p.id,
             name: p.name,
             complaintCount: p.complaintCount,
+            synthetic: p.synthetic,
           }))}
         />
       )}

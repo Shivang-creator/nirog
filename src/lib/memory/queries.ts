@@ -8,7 +8,10 @@ import "server-only";
  */
 
 import { query, MEMORY_TIMEOUT_MS } from "./db";
+import { isPatientId } from "./ids";
 import { withMemory, type MemoryOutcome } from "./degrade";
+
+export { isPatientId } from "./ids";
 import { detectAll, type ComplaintRecord } from "../clinical/recurrence";
 import { buildSbar, type Patient, type Sbar } from "../clinical/sbar";
 import type { RecurrenceFlag } from "../clinical/recurrence";
@@ -19,7 +22,20 @@ export interface PatientSummary extends Patient {
   complaintCount: number;
   visitCount: number;
   lastSeen: Date | null;
+  /** Generated filler from `npm run db:volume`, not a hand-written demo case. */
+  synthetic: boolean;
 }
+
+/**
+ * Synthetic patients are tagged with a "(vol)" suffix by the volume seeder.
+ *
+ * They exist so query plans and latency are measured against a table that
+ * resembles a real clinic, and they must not get in the way of the three cases
+ * that actually demonstrate anything. A reviewer opening this page alone has to
+ * land on the demo immediately, not scroll past four hundred rows of filler
+ * looking for it.
+ */
+const SYNTHETIC_SUFFIX = "(vol)";
 
 export interface ChartComplaint extends ComplaintRecord {
   regionSource: RegionSource;
@@ -55,7 +71,8 @@ export async function listPatients(): Promise<MemoryOutcome<PatientSummary[]>> {
           FROM patient p
           LEFT JOIN complaint c ON c.patient_id = p.id
          GROUP BY p.id, p.name, p.year_of_birth, p.sex, p.family_history
-         ORDER BY max(c.occurred_at) DESC NULLS LAST
+         ORDER BY (p.name LIKE '%${SYNTHETIC_SUFFIX}') ASC,
+                  max(c.occurred_at) DESC NULLS LAST
       `);
 
       return rows.map((r) => ({
@@ -67,6 +84,7 @@ export async function listPatients(): Promise<MemoryOutcome<PatientSummary[]>> {
         complaintCount: Number(r.complaint_count),
         visitCount: Number(r.visit_count),
         lastSeen: r.last_seen ? new Date(r.last_seen) : null,
+        synthetic: r.name.endsWith(SYNTHETIC_SUFFIX),
       }));
     },
     [],
@@ -86,6 +104,11 @@ export async function getChart(
   patientId: string,
   now: Date = new Date(),
 ): Promise<MemoryOutcome<Chart | null>> {
+  // Answered without a round trip, and without raising a false alarm.
+  if (!isPatientId(patientId)) {
+    return { ok: true, value: null, degraded: false, latencyMs: 0 };
+  }
+
   return withMemory(
     async () => {
       const [patientRow] = await query<{

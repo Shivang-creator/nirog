@@ -14,7 +14,8 @@
     "db:explain": "tsx scripts/explain.mts",
     "verify": "tsx scripts/verify.mts",
     "db:volume": "tsx scripts/seed-volume.mts",
-    "test:e2e": "tsx scripts/smoke.mts"
+    "test:e2e": "tsx scripts/smoke.mts",
+    "check:browser": "tsx scripts/browser-check.mts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1111.0",
@@ -25,6 +26,7 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@aws-sdk/client-bedrock": "^3.1112.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.11.10",
@@ -34,6 +36,7 @@
     "dotenv": "^17.2.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
+    "playwright": "^1.62.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
     "typescript": "^5",

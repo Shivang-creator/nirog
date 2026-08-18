@@ -1,9 +1,9 @@
-# Anamnesis
+# Nirog
 
 **Has this patient told us this before?**
 
-*Anamnesis* is the clinical term for taking a patient's history. It is also the
-Greek word for recollection. That double meaning is the product.
+Clinical intake where the memory layer does the work — the agent remembers what
+a patient said months ago, in whatever words they happened to use that day.
 
 Built for the [CockroachDB × AWS Hackathon](https://cockroachdb-ai.devpost.com/)
 — agents that remember.

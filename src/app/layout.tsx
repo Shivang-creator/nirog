@@ -7,9 +7,9 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Anamnesis — has this patient told us this before?",
+  title: "Nirog — has this patient told us this before?",
   description:
-    "Agent memory for clinical intake. Patients describe the same problem differently every visit; Anamnesis links those descriptions and surfaces the recurrence.",
+    "Agent memory for clinical intake. Patients describe the same problem differently every visit; Nirog links those descriptions and surfaces the recurrence.",
 };
 
 const NAV = [
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="mx-auto w-full max-w-4xl px-6 py-4 flex items-baseline justify-between gap-6">
             <Link href="/" className="flex items-baseline gap-2.5">
               <span className="text-[17px] tracking-[-0.01em] font-medium">
-                Anamnesis
+                Nirog
               </span>
               <span className="hidden sm:inline text-[12px] text-ink-3">
                 the patient&rsquo;s history, remembered
@@ -51,7 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="border-t border-rule mt-16">
           <div className="mx-auto w-full max-w-4xl px-6 py-6 text-[12px] text-ink-3 leading-relaxed">
             <p>
-              Anamnesis is a demonstration built for the CockroachDB × AWS
+              Nirog is a demonstration built for the CockroachDB × AWS
               hackathon. It is not a medical device, it does not diagnose, and
               nothing it produces should be acted on without a clinician.
             </p>

@@ -95,7 +95,7 @@ export default function Home() {
             silently, and nobody in the room would know it happened.
           </p>
           <p>
-            So Anamnesis never returns an empty history when it means an
+            So Nirog never returns an empty history when it means an
             unreachable one. It says which of the two it is, every time, and
             writes a row proving it knew.
           </p>

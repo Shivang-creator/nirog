@@ -14,6 +14,7 @@
 
 import { revalidatePath } from "next/cache";
 import { query, MEMORY_TIMEOUT_MS } from "@/lib/memory/db";
+import { isPatientId } from "@/lib/memory/ids";
 import { searchMemory, logRecall, RECALL_THRESHOLD } from "@/lib/memory/recall";
 import { withMemory } from "@/lib/memory/degrade";
 import { resolveRegion, type ResolvedRegion } from "@/lib/clinical/resolve";
@@ -59,6 +60,11 @@ export async function submitComplaint(
   const text = String(form.get("text") ?? "").trim();
 
   if (!patientId) return { ok: false, error: "Choose a patient." };
+  // Same reasoning as getChart: a malformed id is a bad request, not an outage.
+  // Letting it reach the driver would surface as "memory unreachable".
+  if (!isPatientId(patientId)) {
+    return { ok: false, error: "That patient id is not valid." };
+  }
   if (text.length < 3) {
     return { ok: false, error: "Describe the symptom in a few words." };
   }

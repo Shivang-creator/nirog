@@ -1,4 +1,4 @@
--- Anamnesis — agent memory schema
+-- Nirog — agent memory schema
 --
 -- One design decision drives this whole file: the embedding lives in the same table
 -- as the complaint it belongs to. Not a sidecar table, not a separate vector store.
