@@ -71,6 +71,8 @@ export function Home({ patientId }: { patientId: string | null }) {
   const [recall, setRecall] = useState<{ text: string; when: string }[] | null>(null);
   const [opener, setOpener] = useState<string | null>(null);
   const [remembered, setRemembered] = useState<Region | null>(null);
+  /** Dismissable once — she should say the mic is dead, not nag about it. */
+  const [micNoticeSeen, setMicNoticeSeen] = useState(false);
   const spokeOpener = useRef(false);
   const turnRef = useRef(0);
   /** The history she is taking herself. Null until she has a complaint to work from. */
@@ -268,6 +270,9 @@ export function Home({ patientId }: { patientId: string | null }) {
    */
   useEffect(() => {
     if (session !== "live" || !handsFree) return;
+    // No microphone in this browser. Reopening it would fail again in 450ms,
+    // for as long as the page is open. She waits for typing instead.
+    if (aria.sttBlocked) return;
     if (aria.speaking || aria.listening || kase.thinking || finalising) return;
     const t = setTimeout(() => {
       void (async () => {
@@ -379,7 +384,12 @@ export function Home({ patientId }: { patientId: string | null }) {
         handsFree={handsFree}
         prompts={kase.complete ? QA_PROMPTS : ARIA_PROMPTS}
         complete={kase.complete}
-        error={kase.error}
+        error={
+          kase.error ??
+          (aria.sttBlocked && !micNoticeSeen
+            ? "This browser will not open the microphone. Type your answers instead — everything else works the same."
+            : null)
+        }
         onSend={(t) => void send(t)}
         onMicToggle={() => {
           if (aria.listening) aria.stopListen();
@@ -390,7 +400,10 @@ export function Home({ patientId }: { patientId: string | null }) {
             })();
         }}
         onHandsFreeToggle={() => setHandsFree((h) => !h)}
-        onDismissError={() => setCase({ error: null })}
+        onDismissError={() => {
+          setCase({ error: null });
+          setMicNoticeSeen(true);
+        }}
         onAnalysis={() => router.push("/patient/case")}
         onDoctor={() => router.push("/patient/doctors")}
       />
