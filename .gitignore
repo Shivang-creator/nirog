@@ -46,3 +46,6 @@ next-env.d.ts
 # Local submission drafts — never publish
 SUBMISSION.md
 SUBMISSION-DRAFT.md
+
+# Internal working notes — not for the public repo
+CONTEXT.md
