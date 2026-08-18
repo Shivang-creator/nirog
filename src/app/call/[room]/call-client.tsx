@@ -33,7 +33,7 @@ export function CallClient({ room }: { room: string }) {
     seconds % 60
   ).padStart(2, "0")}`;
 
-  if (call.status === "idle" || call.status === "media-error") {
+  if (call.status === "idle" || call.status === "media-error" || call.status === "no-signalling") {
     return (
       <main className="grid min-h-dvh place-items-center bg-canvas px-6">
         <div className="w-full max-w-sm text-center">
@@ -55,10 +55,21 @@ export function CallClient({ room }: { room: string }) {
                 Allow camera &amp; mic access in your browser, then try again.
               </p>
             )}
+            {call.status === "no-signalling" && (
+              <p className="mt-3 rounded-lg bg-soft-amber px-3 py-2 text-left text-xs leading-relaxed text-ink-soft">
+                <strong className="font-semibold text-ink">
+                  Calling is not configured on this deployment.
+                </strong>{" "}
+                The consultation room needs a signalling service, which this
+                demo does not have. Your camera has been released. Nothing is
+                wrong with your connection.
+              </p>
+            )}
             <button
               type="button"
+              disabled={call.status === "no-signalling"}
               onClick={() => void call.start()}
-              className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-ink text-[15px] font-semibold text-white transition-transform active:scale-[0.97]"
+              className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-ink text-[15px] font-semibold text-white transition-transform active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40"
             >
               <Video className="size-4" /> Join consultation
             </button>

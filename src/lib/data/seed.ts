@@ -131,21 +131,28 @@ export const HANDOVERS: AriaHandover[] = [
   {
     id: "aria_rahul",
     patientId: "pat_rahul",
-    createdAt: "2026-07-17T04:41:00.000Z",
-    chiefComplaint: "Breathlessness for 2 days",
+    createdAt: "2026-08-17T04:41:00.000Z",
+    /*
+     * This handover and the Memory panel above it describe the same episode on
+     * purpose. They used to disagree — the memory read "three lumbar visits in
+     * 37 days" while the card underneath it opened an unrelated emergency —
+     * and a chart that contradicts itself teaches a clinician to trust neither
+     * half. What ARIA heard and what she handed over are one story.
+     */
+    chiefComplaint: "Lower back pain, third episode in five weeks",
     narrative:
-      "Patient reports increasing shortness of breath over 2 days, worse on exertion and when lying flat. Notes a tight, pressing sensation across the chest since this morning. No fever. Adherent to Amlodipine.",
-    durationText: "2 days, worsening today",
+      "Third presentation of lower back pain since 11 July, described today as \"the ache is back again, it's been three weeks now\". Worse in the mornings and on standing from sitting. Reports it now travels into the right leg on bending, which is new. No bladder or bowel disturbance. Father had lumbar disc surgery at forty. Adherent to Amlodipine.",
+    durationText: "3 weeks this episode; recurring since 11 July",
     symptoms: [
-      "Breathlessness on exertion",
-      "Orthopnoea",
-      "Chest pressure",
-      "Fatigue",
+      "Lower back pain, worse in the mornings",
+      "Pain on standing from sitting",
+      "Radiation into right leg on bending",
+      "Recurrent over 37 days",
     ],
-    redFlags: ["Chest pressure with breathlessness", "Orthopnoea"],
-    vitals: { pulseBpm: 104, spo2: 93, systolic: 158, diastolic: 96, respRate: 22 },
-    aiConfidence: 0.82,
-    suggestedTriage: "emergency",
+    redFlags: ["New radiation into the leg on a recurrent back complaint"],
+    vitals: { pulseBpm: 78, spo2: 98, systolic: 142, diastolic: 88, respRate: 16 },
+    aiConfidence: 0.79,
+    suggestedTriage: "urgent",
     language: "Hindi",
     verifiedByDoctor: false,
   },
@@ -302,12 +309,12 @@ export function buildQueue(now: Date): QueueEntry[] {
       patientId: "pat_rahul",
       doctorId: DOCTOR.id,
       kind: "chronic",
-      triage: "emergency",
+      triage: "urgent",
       state: "waiting",
       checkedInAt: minsAgo(14),
       scheduledFor: at(10, 15),
       channel: "video",
-      reason: "Breathlessness, chest pressure",
+      reason: "Lower back pain — 3rd visit in 5 weeks",
       handoverId: "aria_rahul",
       connectionQuality: "fair",
     },

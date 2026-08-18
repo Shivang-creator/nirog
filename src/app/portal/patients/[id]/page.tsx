@@ -8,6 +8,7 @@ import { PatientHeader, KnownContext } from "@/components/portal/patient-context
 import { HandoverCard } from "@/components/portal/handover-card";
 import { EncounterHistory } from "@/components/portal/encounter-history";
 import { PatientDocuments } from "@/components/portal/documents";
+import { MemoryPanel } from "@/components/portal/memory-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,13 @@ export default async function PatientChartPage({
 
         <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
           <div className="space-y-5">
+            {/*
+             * Memory sits above the handover on purpose. "Has this patient told
+             * us this before?" changes how the rest of the chart reads, and a
+             * recurrence found after the assessment has been read is a
+             * recurrence found too late.
+             */}
+            <MemoryPanel portalPatientId={chart.patient.id} />
             {chart.handover && <HandoverCard handover={chart.handover} />}
             <PatientDocuments patientId={chart.patient.id} />
           </div>

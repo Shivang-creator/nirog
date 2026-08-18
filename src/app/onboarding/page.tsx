@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isAuthConfigured } from "@/lib/supabase/server";
 import { getDataSource } from "@/lib/data/source";
 import { logout } from "@/app/(auth)/actions";
 import { Logo } from "@/components/brand/logo";
@@ -10,15 +10,25 @@ export const metadata: Metadata = { title: "Complete your profile" };
 export const dynamic = "force-dynamic";
 
 export default async function OnboardingPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  /*
+   * Demo mode has no session to check, and sending the wizard to /login there
+   * made it unreachable: the demo doctor is already onboarded, so nothing ever
+   * redirected *into* onboarding either. The screen existed and no one could
+   * open it. Same branch as demo sign-in — see (auth)/actions.ts.
+   */
+  if (isAuthConfigured()) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+  }
 
   const ds = await getDataSource();
   const doctor = await ds.getDoctor();
-  if (doctor.onboardingComplete) redirect("/portal");
+  // In demo mode the seeded doctor is already verified; showing the wizard
+  // anyway is the point of visiting this URL directly.
+  if (isAuthConfigured() && doctor.onboardingComplete) redirect("/portal");
 
   // Pre-fill from whatever we already know (email signup / Google metadata).
   const nameParts = doctor.fullName.replace(/^Dr\.?\s*/i, "").split(/\s+/);

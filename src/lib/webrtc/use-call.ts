@@ -8,6 +8,10 @@ export type CallRole = "doctor" | "patient";
 export type CallStatus =
   | "idle"
   | "media-error"
+  // Signalling is unconfigured on this deployment, so there is no room to join.
+  // Distinct from "media-error" because nothing the user does fixes it, and
+  // distinct from "idle" because idle invites them to press the button again.
+  | "no-signalling"
   | "waiting"
   | "connecting"
   | "connected"
@@ -186,9 +190,22 @@ export function useCall(
     setStatusBoth("waiting");
 
     supabaseRef.current ??= createClient();
-    // Signalling rides Supabase realtime; without it there is no call to join.
+    /*
+     * Signalling rides Supabase realtime; without it there is no room to join.
+     *
+     * This used to drop back to "idle", which re-rendered the join screen as
+     * though nothing had happened — while the camera stayed on, `startedRef`
+     * stayed true so the button was dead on the second press, and no message
+     * ever said why. Release the hardware and name the reason instead: the
+     * same rule the memory layer follows, that a thing which did not happen
+     * must never look like a thing that found nothing.
+     */
     if (!supabaseRef.current) {
-      setStatusBoth("idle");
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      setLocalStream(null);
+      startedRef.current = false;
+      setStatusBoth("no-signalling");
       return;
     }
     const chan = supabaseRef.current.channel(`call-${room}`, {
