@@ -36,6 +36,24 @@ import type { RecallMatch } from "../memory/recall";
  */
 export const INHERIT_THRESHOLD = 0.4;
 
+/**
+ * The same rule on Titan's distance scale (see recall.ts for the measured
+ * battery). Legitimate inheritance cases — "the ache is back again" against a
+ * named lumbar history — measure 0.63–0.65; the closest cross-region trap
+ * ("the ache is back again" against a headache history) measures 0.70. The
+ * margin is thin because Titan compresses short sentences; 0.68 sits inside
+ * it, and the miss direction is the safe one: too far to inherit leaves the
+ * region unknown rather than guessing.
+ */
+export const BEDROCK_INHERIT_THRESHOLD = 0.68;
+
+/** The inheritance cut-off for the embedding space the matches came from. */
+export function inheritThresholdFor(provider: string): number {
+  return provider.startsWith("bedrock:")
+    ? BEDROCK_INHERIT_THRESHOLD
+    : INHERIT_THRESHOLD;
+}
+
 export type RegionSource = "lexicon" | "inherited" | "none";
 
 export interface ResolvedRegion {
@@ -58,6 +76,7 @@ export interface ResolvedRegion {
 export function resolveRegion(
   text: string,
   matches: RecallMatch[],
+  inheritThreshold: number = INHERIT_THRESHOLD,
 ): ResolvedRegion {
   const lexical = classify(text);
   if (lexical.region !== "unknown") {
@@ -69,7 +88,7 @@ export function resolveRegion(
   }
 
   const candidate = matches
-    .filter((m) => m.bodyRegion !== "unknown" && m.distance <= INHERIT_THRESHOLD)
+    .filter((m) => m.bodyRegion !== "unknown" && m.distance <= inheritThreshold)
     .sort((a, b) => a.distance - b.distance)[0];
 
   if (!candidate) {

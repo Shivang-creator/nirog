@@ -56,7 +56,6 @@ describe("withMemory", () => {
 
   it("handles a non-Error rejection", async () => {
     quiet();
-    // eslint-disable-next-line @typescript-eslint/only-throw-error
     const r = await withMemory(async () => Promise.reject("just a string"), 0, 100);
     expect(r.degraded).toBe(true);
     expect(r.reason).toBe("just a string");

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, MEMORY_TIMEOUT_MS } from "@/lib/memory/db";
 import { withMemory } from "@/lib/memory/degrade";
 import { isPatientId } from "@/lib/memory/ids";
-import { searchMemory, logRecall } from "@/lib/memory/recall";
-import { resolveRegion } from "@/lib/clinical/resolve";
+import { searchMemory, logRecall, recallThresholdFor } from "@/lib/memory/recall";
+import { resolveRegion, inheritThresholdFor } from "@/lib/clinical/resolve";
 import { embedderFromEnv, resilientEmbedder } from "@/lib/ai/embed";
 import type { RecallMatch } from "@/lib/memory/recall";
 
@@ -85,8 +85,11 @@ export async function POST(req: NextRequest) {
 
   if (vector) {
     const embedding = vector;
+    // Thresholds live on the query vector's embedding space — a Titan vector
+    // compared against Titan history needs Titan's scale, not the offline one.
+    const threshold = recallThresholdFor(embedProvider);
     const outcome = await withMemory(
-      () => searchMemory({ patientId, embedding, limit: 5 }),
+      () => searchMemory({ patientId, embedding, limit: 5, threshold }),
       [] as RecallMatch[],
       MEMORY_TIMEOUT_MS,
     );
@@ -96,7 +99,7 @@ export async function POST(req: NextRequest) {
   }
 
   /* 3. Region — from the words, or inherited from memory when they don't say. */
-  const resolved = resolveRegion(text, matches);
+  const resolved = resolveRegion(text, matches, inheritThresholdFor(embedProvider));
 
   /* 4. Write. */
   try {
@@ -115,6 +118,20 @@ export async function POST(req: NextRequest) {
       ],
     );
   } catch (err) {
+    // The one case an auditor most wants recorded: the recall ran but the
+    // write was lost. logRecall never throws — it logs and moves on.
+    await logRecall({
+      patientId,
+      queryText: text,
+      matchesFound: matches.length,
+      topDistance: matches[0]?.distance ?? null,
+      latencyMs: Date.now() - started,
+      degraded: true,
+      degradedReason: `complaint insert failed: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+      embedProvider,
+    });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : String(err) },
       { status: 500 },
