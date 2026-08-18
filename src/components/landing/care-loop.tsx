@@ -11,11 +11,8 @@ import {
   MessageSquare,
   ClipboardCheck,
   Pill,
-  BellRing,
   TriangleAlert,
   CheckCircle2,
-  CalendarClock,
-  Truck,
   RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -106,42 +103,6 @@ const STEPS: Step[] = [
         <Pill className="size-4 text-blue" />
         <span className="text-xs font-semibold text-ink">Amlodipine 5mg · OD</span>
         <CheckCircle2 className="ml-auto size-4 text-green" />
-      </div>
-    ),
-  },
-  {
-    icon: Truck,
-    tone: "text-indigo bg-soft-indigo",
-    bar: "var(--indigo)",
-    title: "Fulfil",
-    desc: "Medicines and tests reach the village — 2-day rural delivery, tracked in the patient app.",
-    visual: (
-      <div className="flex items-center gap-2 rounded-xl bg-canvas px-3 py-2">
-        <span className="grid size-6 place-items-center rounded-full bg-soft-green text-green">
-          <CheckCircle2 className="size-3.5" />
-        </span>
-        <span className="text-xs font-semibold text-ink">Order placed · ₹86</span>
-        <span className="ml-auto flex gap-1">
-          <span className="size-1.5 rounded-full bg-green" />
-          <span className="size-1.5 rounded-full bg-green/50" />
-          <span className="size-1.5 rounded-full bg-ink/15" />
-        </span>
-      </div>
-    ),
-  },
-  {
-    icon: BellRing,
-    tone: "text-red bg-soft-red",
-    bar: "var(--red)",
-    title: "Follow-up",
-    desc: "The plan returns as reminders — the loop closes, and care becomes continuous.",
-    visual: (
-      <div className="flex items-center gap-2 rounded-xl bg-canvas px-3 py-2">
-        <CalendarClock className="size-4 text-amber" />
-        <span className="text-xs font-semibold text-ink">Review in 7 days</span>
-        <span className="ml-auto rounded-md bg-soft-amber px-2 py-0.5 text-[10px] font-semibold text-amber">
-          reminder set
-        </span>
       </div>
     ),
   },

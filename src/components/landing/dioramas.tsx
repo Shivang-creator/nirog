@@ -238,7 +238,7 @@ export function CarePlanDiorama() {
       </Float>
       <Float className="bottom-[20%] right-[7%]" delay={1.1}>
         <span className="rounded-full bg-panel px-3 py-1.5 text-xs font-medium text-ink shadow-quiet">
-          Medicines &amp; tests
+          In the patient&rsquo;s own words
         </span>
       </Float>
     </div>
