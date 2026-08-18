@@ -63,7 +63,25 @@ export interface AriaState {
   caption: string;
   /** Whether the realistic GLB loaded, or we are on the procedural stand-in. */
   realistic: boolean;
+  /**
+   * The mic is not going to work in this browser, so stop asking for it.
+   *
+   * Speech recognition is a Chrome/Edge feature. In Safari and Firefox the
+   * scene reports "Not supported" the instant the mic is opened, and hands-free
+   * mode answers a failed listen by opening the mic again 450ms later. That is
+   * a loop with no exit: it re-rendered several times a second, and the churn
+   * was enough to stop the tab bar navigating at all — the patient could not
+   * leave the page. A microphone that cannot work is a permanent condition, so
+   * it is recorded once and the loop is never started again.
+   */
+  sttBlocked: boolean;
 }
+
+/**
+ * Errors that mean "not in this browser, not on this visit" rather than
+ * "that attempt failed". Retrying any of these produces the same answer.
+ */
+const FATAL_STT_ERRORS = ["not supported", "not-allowed", "service-not-allowed"];
 
 export function useAria(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
   const [state, setState] = useState<AriaState>({
@@ -72,6 +90,7 @@ export function useAria(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
     listening: false,
     caption: "",
     realistic: false,
+    sttBlocked: false,
   });
 
   /**
@@ -127,12 +146,24 @@ export function useAria(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
           }
           break;
 
-        case "sttError":
-          console.warn("[aria] speech recognition failed:", m.error);
-          setState((s) => ({ ...s, listening: false }));
+        case "sttError": {
+          const fatal = FATAL_STT_ERRORS.some((e) =>
+            (m.error ?? "").toLowerCase().includes(e),
+          );
+          console.warn(
+            "[aria] speech recognition failed:",
+            m.error,
+            fatal ? "(giving up on the mic for this visit)" : "",
+          );
+          setState((s) => ({
+            ...s,
+            listening: false,
+            sttBlocked: s.sttBlocked || fatal,
+          }));
           heardResolver.current?.("");
           heardResolver.current = null;
           break;
+        }
         case "log":
           if (process.env.NODE_ENV !== "production") {
             console.debug("[aria]", m.msg);
