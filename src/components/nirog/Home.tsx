@@ -126,11 +126,26 @@ export function Home({ patientId }: { patientId: string | null }) {
    */
   useEffect(() => {
     if (!aria.ready || !opener || spokeOpener.current) return;
-    spokeOpener.current = true;
-    // Behind her own greeting, so it chains rather than talks over it.
-    const t = setTimeout(() => aria.say(opener), 2600);
+    /*
+     * Wait for the gesture, then wait for her to stop talking.
+     *
+     * The scene greets itself on the first tap — greetOnce() calls queueLines(),
+     * which REPLACES the speech queue rather than appending to it. So an opener
+     * spoken on a timer raced the greeting and lost: the patient heard "Hi, I am
+     * ARIA", the line that names their history was wiped mid-flight, and the one
+     * thing this product exists to say never got said.
+     *
+     * `unlocked` means a click has happened, so audio will actually play and the
+     * greeting has been triggered. `speaking` false means it has finished. Only
+     * then is the line worth spending.
+     */
+    if (!aria.unlocked || aria.speaking) return;
+    const t = setTimeout(() => {
+      spokeOpener.current = true;
+      aria.say(opener);
+    }, 700);
     return () => clearTimeout(t);
-  }, [aria, opener]);
+  }, [aria, opener, aria.unlocked, aria.speaking, aria.ready]);
 
   const react = useCallback(
     (line: string) => {
