@@ -40,6 +40,7 @@
   "devDependencies": {
     "@aws-sdk/client-bedrock": "^3.1112.0",
     "@aws-sdk/client-polly": "^3.1112.0",
+    "@aws-sdk/client-transcribe": "^3.1112.0",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",

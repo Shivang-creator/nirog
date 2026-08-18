@@ -30,6 +30,13 @@ const SHIM = `
   };
   window.NIROG_MODEL_URL = '/aria/chloe_avatar.glb';
   window.NIROG_MODEL_URLS = ['/aria/chloe_avatar.glb'];
+
+  // The scene calls NIROG_ARIA_API + '/speak' for her voice and
+  // NIROG_ARIA_API + '/transcribe' for the microphone. Pointing it at our own
+  // origin routes both to Next.js handlers, so nurseHtml.ts needs no edit:
+  //   /api/speak       → Amazon Polly (Kajal, en-IN neural)
+  //   /api/transcribe  → needs transcribe:StartStreamTranscription
+  window.NIROG_ARIA_API = '/api';
 </script>
 `;
 
