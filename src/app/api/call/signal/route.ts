@@ -73,6 +73,25 @@ export async function GET(req: NextRequest) {
 
   try {
     /*
+     * No cursor means "I have just arrived": answer with the database's own
+     * clock and nothing else.
+     *
+     * The cursor must come from the same clock that stamps the rows. It used to
+     * be minted in the browser, and a client running a second or two ahead of
+     * the cluster asked for rows newer than a moment that had not happened yet
+     * — so it waited forever for signals that were already sitting there. It
+     * worked on one machine and failed on another, which is exactly how clock
+     * skew announces itself.
+     */
+    if (!since) {
+      const [t] = await query<{ now: Date }>(`SELECT now() AS now`);
+      return NextResponse.json({
+        signals: [],
+        cursor: new Date(t.now).toISOString(),
+      });
+    }
+
+    /*
      * Everything the other side said, oldest first — order matters, because an
      * answer applied before its offer is not an answer to anything.
      */
@@ -84,7 +103,7 @@ export async function GET(req: NextRequest) {
           AND created_at > $3::TIMESTAMPTZ
         ORDER BY created_at ASC
         LIMIT 100`,
-      [room, role, since ?? new Date(Date.now() - 60_000).toISOString()],
+      [room, role, since],
     );
 
     // Opportunistic sweep. Cheap, and it keeps the table from accumulating the
@@ -99,7 +118,7 @@ export async function GET(req: NextRequest) {
       cursor:
         rows.length > 0
           ? new Date(rows[rows.length - 1].created_at).toISOString()
-          : (since ?? new Date(Date.now() - 60_000).toISOString()),
+          : since,
     });
   } catch (err) {
     console.error("[call/signal] read failed", err instanceof Error ? err.message : err);
