@@ -325,6 +325,32 @@ async function tryLoadAvatar(){
 // loader.parse(). NOTE: a successful file:// read reports xhr.status === 0 (no HTTP
 // status line), not 200, so treat 0 as success.
 function xhrArrayBuffer(url){
+  /*
+   * On the web the avatar is fetched at LOW priority instead, and this matters
+   * more than it sounds. The model is several megabytes; on a slow connection
+   * the browser was spending a minute or more on it, and every other request
+   * on that connection queued behind it — including the navigation the patient
+   * asked for when they tapped a tab. The page looked interactive and simply
+   * would not go anywhere, which is a far worse failure than a nurse who takes
+   * a while to arrive.
+   *
+   * A navigation outranks a low-priority fetch, so the tap wins now. XHR has no
+   * priority hint, so this path stays for file:// only, where it is the whole
+   * reason the function exists (see the note above).
+   */
+  if (/^https?:/i.test(String(url)) && typeof fetch === 'function'){
+    return fetch(url, { priority: 'low', credentials: 'same-origin' })
+      .then((r)=>{
+        if (!r.ok) throw new Error('fetch status=' + r.status);
+        return r.arrayBuffer();
+      })
+      .then((buf)=>{
+        if (!buf || !buf.byteLength) throw new Error('fetch returned an empty body');
+        LOG('GLB read ~' + Math.round(buf.byteLength/1048576) + 'MB (low priority)');
+        return buf;
+      });
+  }
+
   return new Promise((resolve, reject)=>{
     try {
       const xhr = new XMLHttpRequest();
