@@ -113,7 +113,10 @@ async function post<T>(path: string, body: unknown, timeoutMs = 45000): Promise<
       signal: abort.signal,
     });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error((json as any).error ?? `ARIA ${path} failed (${res.status})`);
+    if (!res.ok)
+      throw new Error(
+        (json as { error?: string }).error ?? `ARIA ${path} failed (${res.status})`,
+      );
     return json as T;
   } finally {
     clearTimeout(timer);

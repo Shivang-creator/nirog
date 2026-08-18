@@ -21,8 +21,8 @@ import { config } from "dotenv";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
-import { resolveRegion, explainResolution } from "../src/lib/clinical/resolve.ts";
-import { RECALL_THRESHOLD } from "../src/lib/memory/recall.ts";
+import { resolveRegion, explainResolution, inheritThresholdFor } from "../src/lib/clinical/resolve.ts";
+import { recallThresholdFor } from "../src/lib/memory/recall.ts";
 import {
   embedderFromEnv,
   resilientEmbedder,
@@ -166,11 +166,15 @@ for (const p of PATIENTS) {
       // Seeding runs chronologically, so by the time a follow-up complaint is
       // written its predecessors are already in memory and can be inherited
       // from — the same path the live intake takes.
+      // Same shape as the live recall in src/lib/memory/recall.ts: no
+      // `embedding IS NOT NULL` guard (it defeats the vector index there), and
+      // the same null-distance mapping — an unembedded row must sort last,
+      // never first (Number(null) === 0).
       const { rows: prior } = await client.query(
         `SELECT id, visit_id, patient_id, raw_text, body_region, occurred_at,
                 embedding <=> $2 AS distance
            FROM complaint
-          WHERE patient_id = $1 AND embedding IS NOT NULL AND occurred_at < $3
+          WHERE patient_id = $1 AND occurred_at < $3
           ORDER BY embedding <=> $2
           LIMIT 5`,
         [patient.id, `[${vector.join(",")}]`, occurredAt],
@@ -184,11 +188,11 @@ for (const p of PATIENTS) {
           rawText: r.raw_text,
           bodyRegion: r.body_region,
           occurredAt: new Date(r.occurred_at),
-          distance: Number(r.distance),
+          distance: r.distance == null ? Infinity : Number(r.distance),
         }))
-        .filter((m) => m.distance <= RECALL_THRESHOLD);
+        .filter((m) => m.distance <= recallThresholdFor(provider));
 
-      const resolved = resolveRegion(text, matches);
+      const resolved = resolveRegion(text, matches, inheritThresholdFor(provider));
 
       await client.query(
         `INSERT INTO complaint

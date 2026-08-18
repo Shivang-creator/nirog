@@ -17,8 +17,30 @@ import { withMemory, type MemoryOutcome } from "./degrade";
  * when I stand up" match, while "my lower back has been aching" and "I've had a
  * headache since Tuesday" do not. Exported and asserted in the test suite, so a
  * change to this number has to break a test before it can change a diagnosis.
+ *
+ * IMPORTANT: distances are only comparable within one embedding space. This
+ * value is tuned for the offline lexical embedder; Titan produces a compressed
+ * scale on short sentences (related pairs 0.54–0.82, unrelated from 0.70), so
+ * it gets its own value below. Always select via recallThresholdFor(provider).
  */
 export const RECALL_THRESHOLD = 0.55;
+
+/**
+ * Same rule, Titan's scale. Measured on a labelled battery of 20 complaint
+ * pairs (10 same-problem-reworded, 10 different-problem): every related pair
+ * sat at ≤ 0.823, the closest unrelated at 0.700. 0.85 keeps recall at 100%
+ * and accepts that a few recurrence-phrased unrelated pairs surface — showing
+ * a borderline match to a doctor costs a glance; hiding a real one costs the
+ * pattern.
+ */
+export const BEDROCK_RECALL_THRESHOLD = 0.85;
+
+/** The recall cut-off for the embedding space this vector came from. */
+export function recallThresholdFor(provider: string): number {
+  return provider.startsWith("bedrock:")
+    ? BEDROCK_RECALL_THRESHOLD
+    : RECALL_THRESHOLD;
+}
 
 export interface RecallMatch {
   id: string;
@@ -54,8 +76,11 @@ export async function searchMemory(opts: {
   excludeComplaintId?: string;
   /** Only complaints strictly before this instant — prevents a complaint recalling itself. */
   before?: Date;
+  /** Cut-off for the query vector's embedding space — recallThresholdFor(provider). */
+  threshold?: number;
 }): Promise<RecallMatch[]> {
   const limit = opts.limit ?? 10;
+  const threshold = opts.threshold ?? RECALL_THRESHOLD;
   const vec = toVectorLiteral(opts.embedding);
 
   // Note the absence of an `embedding IS NOT NULL` guard.
@@ -102,7 +127,7 @@ export async function searchMemory(opts: {
       // surfaced.
       distance: r.distance === null ? Infinity : Number(r.distance),
     }))
-    .filter((m) => Number.isFinite(m.distance) && m.distance <= RECALL_THRESHOLD);
+    .filter((m) => Number.isFinite(m.distance) && m.distance <= threshold);
 }
 
 /**
@@ -118,6 +143,7 @@ export async function recall(opts: {
   limit?: number;
   excludeComplaintId?: string;
   before?: Date;
+  threshold?: number;
 }): Promise<MemoryOutcome<RecallMatch[]>> {
   return withMemory(() => searchMemory(opts), [], MEMORY_TIMEOUT_MS);
 }

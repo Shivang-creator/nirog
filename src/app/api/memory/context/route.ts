@@ -32,8 +32,13 @@ function shortWhen(d: Date, now: Date): string {
 export async function GET(req: NextRequest) {
   const patientId = req.nextUrl.searchParams.get("patientId") ?? "";
 
+  /*
+   * A malformed id is a caller bug, not a patient with no history — answer 400
+   * like the write path does, instead of a 200 indistinguishable from a new
+   * patient. The client already treats any non-OK response as "no recall".
+   */
   if (!isPatientId(patientId)) {
-    return NextResponse.json({ recall: [], opener: null, degraded: false });
+    return NextResponse.json({ error: "bad patient id" }, { status: 400 });
   }
 
   const now = new Date();
