@@ -11,6 +11,14 @@
  *
  * Hidden means `visibility: hidden`, never `display: none` or unmounting — a
  * hidden iframe keeps its WebGL context and its audio; a removed one does not.
+ *
+ * She is not created until a screen actually asks to show her, though. The case
+ * file and the doctor list hide her on arrival, and they used to hide an avatar
+ * that had already started downloading: several megabytes fetched, on a page
+ * that never displays them, competing with the navigation the patient asked for
+ * next. Landing straight on the doctor list left the Call button unresponsive
+ * for twenty seconds. Once she has been shown she stays mounted for the life of
+ * the tab, which is the whole point of this component.
  */
 
 import {
@@ -43,8 +51,23 @@ export function useAriaContext(): AriaApi {
 export function AriaProvider({ children }: { children: React.ReactNode }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const aria = useAria(iframeRef);
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
+  /** True once a screen has genuinely shown her; never goes back to false. */
+  const [created, setCreated] = useState(false);
+
+  /*
+   * Deferred by a frame on purpose. Moving between two screens that both hide
+   * her runs the outgoing screen's cleanup — which restores visibility — before
+   * the incoming screen hides her again, so `visible` is briefly true during a
+   * route swap that should not create anything. A frame is long enough for that
+   * to settle and short enough that the patient never waits for it.
+   */
+  useEffect(() => {
+    if (!visible || created) return;
+    const id = requestAnimationFrame(() => setCreated(true));
+    return () => cancelAnimationFrame(id);
+  }, [visible, created]);
 
   /*
    * Browsers block audio until a real gesture, exactly as mobile WebViews do.
@@ -89,15 +112,17 @@ export function AriaProvider({ children }: { children: React.ReactNode }) {
           background: "var(--scene)",
         }}
       >
-        <iframe
-          ref={iframeRef}
-          src="/aria/scene"
-          title="ARIA"
-          // The scene needs the microphone, and it is same-origin so it can be
-          // driven by direct calls rather than postMessage.
-          allow="microphone; autoplay"
-          className="w-full h-full border-0 block"
-        />
+        {created && (
+          <iframe
+            ref={iframeRef}
+            src="/aria/scene"
+            title="ARIA"
+            // The scene needs the microphone, and it is same-origin so it can be
+            // driven by direct calls rather than postMessage.
+            allow="microphone; autoplay"
+            className="w-full h-full border-0 block"
+          />
+        )}
       </div>
 
       <div className="relative z-10">{children}</div>
