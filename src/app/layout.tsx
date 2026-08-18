@@ -1,37 +1,52 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { AriaProvider } from "@/components/aria/AriaProvider";
-import { TabBar } from "@/components/nirog/TabBar";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+// Display face matched to the patient app's friendly extra-bold headings.
+const manrope = Manrope({
+  variable: "--font-display",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const mono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Nirog — ARIA remembers",
+  title: {
+    default: "Nirog — Continuous care platform",
+    template: "%s · Nirog",
+  },
   description:
-    "Clinical intake with ARIA. She asks, reasons over a 13,144-condition knowledge base, hands a doctor an SBAR — and remembers what you told her last time.",
+    "Nirog connects rural patients to trusted clinicians through voice-first AI intake, a responsive doctor workspace, and consent-driven health records.",
+  applicationName: "Nirog",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#DBE7F9",
+  themeColor: "#d9e5f6",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  // The avatar is full-bleed; the chrome positions itself off the safe-area insets.
-  viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  // Light mode only — no theme switching.
   return (
-    <html lang="en" className="h-full">
-      <body className="min-h-full">
-        {/*
-          ARIA is mounted here, above the router, and never unmounts. Navigating
-          to the case file and back would otherwise reboot Three.js, refetch a
-          14 MB avatar and cut her off mid-sentence.
-        */}
-        <AriaProvider>
-          {children}
-          <TabBar />
-        </AriaProvider>
+    <html lang="en" data-scroll-behavior="smooth">
+      <body
+        className={`${inter.variable} ${manrope.variable} ${mono.variable} antialiased`}
+      >
+        {children}
       </body>
     </html>
   );

@@ -1,32 +1,52 @@
-import { query } from "@/lib/memory/db";
-import { withMemory, MemoryOutcome } from "@/lib/memory/degrade";
-import { MEMORY_TIMEOUT_MS } from "@/lib/memory/db";
-import { Home } from "@/components/nirog/Home";
+import { MarketingNav } from "@/components/landing/marketing-nav";
+import { IntroGate } from "@/components/landing/intro-gate";
+import { Hero } from "@/components/landing/hero";
+import { CareLoop } from "@/components/landing/care-loop";
+import { ScrollJourney } from "@/components/landing/scroll-journey";
+import { Features } from "@/components/landing/features";
+import { Closing } from "@/components/landing/closing";
 
-export const dynamic = "force-dynamic";
+export default function LandingPage() {
+  return (
+    <div className="landing-theme relative min-h-dvh">
+      {/* Patient-app periwinkle canvas, beneath the journey's scene skies */}
+      <div aria-hidden className="fixed inset-0 -z-20 bg-[#d9e5f6]" />
+      <IntroGate>
+        <MarketingNav />
+        <Hero />
+        <CareLoop />
+        <ScrollJourney />
+        <Features />
+        <Closing />
+      </IntroGate>
 
-/**
- * Resolve the demo patient.
- *
- * A real deployment would take this from a session. There is no auth here on
- * purpose: a judge testing alone must land on a patient who already has a
- * history, or the memory layer has nothing to demonstrate and the whole point of
- * the project is invisible on first open.
- */
-async function demoPatientId(): Promise<MemoryOutcome<string | null>> {
-  return withMemory(
-    async () => {
-      const [row] = await query<{ id: string }>(
-        `SELECT id FROM patient WHERE name = 'Rahul' LIMIT 1`,
-      );
-      return row?.id ?? null;
-    },
-    null,
-    MEMORY_TIMEOUT_MS,
+      {/* Crawlable copy mirror for SEO / no-JS (the journey renders client-side). */}
+      <div className="sr-only">
+        <h2>The Nirog care world</h2>
+        <p>
+          Nirog is a continuous care platform for rural India, pairing a
+          voice-first patient app with a responsive doctor workspace.
+        </p>
+        <h3>Intake</h3>
+        <p>ARIA captures symptoms by voice in the patient&rsquo;s language.</p>
+        <h3>Triage</h3>
+        <p>
+          A structured AI handover with red flags reaches the doctor&rsquo;s
+          priority queue.
+        </p>
+        <h3>Consult</h3>
+        <p>Audio-first teleconsultation that degrades gracefully and resumes.</p>
+        <h3>Care plan</h3>
+        <p>
+          Notes, prescriptions and follow-up are filed and returned to the
+          patient.
+        </p>
+        <h3>Continuity</h3>
+        <p>
+          One consent-gated, fully audited longitudinal record — a resolved care
+          episode.
+        </p>
+      </div>
+    </div>
   );
-}
-
-export default async function Page() {
-  const outcome = await demoPatientId();
-  return <Home patientId={outcome.value} />;
 }

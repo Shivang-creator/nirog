@@ -15,9 +15,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/", label: "Home", icon: "home" as const },
-  { href: "/case", label: "Case", icon: "pulse" as const },
-  { href: "/doctors", label: "Doctors", icon: "video" as const },
+  { href: "/patient", label: "Home", icon: "home" as const },
+  { href: "/patient/case", label: "Case", icon: "pulse" as const },
+  { href: "/patient/doctors", label: "Doctors", icon: "video" as const },
 ];
 
 export function TabBar() {
@@ -40,7 +40,7 @@ export function TabBar() {
         }}
       >
         {TABS.map((t) => {
-          const active = t.href === "/" ? path === "/" : path.startsWith(t.href);
+          const active = t.href === "/patient" ? path === "/patient" : path.startsWith(t.href);
           const colour = active ? "var(--blue)" : "var(--gray3)";
           return (
             <Link

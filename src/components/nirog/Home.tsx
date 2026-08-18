@@ -64,6 +64,8 @@ export function Home({ patientId }: { patientId: string | null }) {
   const [level] = useState(0);
   const [finalising, setFinalising] = useState(false);
   const [recall, setRecall] = useState<{ text: string; when: string }[] | null>(null);
+  const [opener, setOpener] = useState<string | null>(null);
+  const spokeOpener = useRef(false);
   const turnRef = useRef(0);
 
   useEffect(() => {
@@ -73,13 +75,13 @@ export function Home({ patientId }: { patientId: string | null }) {
   /*
    * Memory, before the first word.
    *
-   * As soon as the scene is up we ask CockroachDB what this patient has told us
+   * We ask CockroachDB what this patient has told us
    * before. If anything comes back, ARIA opens by naming it instead of greeting
    * a stranger — which is the entire difference between an assistant and a
    * receptionist who has your file open.
    */
   useEffect(() => {
-    if (!aria.ready || !patientId || recall !== null) return;
+    if (!patientId || recall !== null) return;
     let cancelled = false;
 
     (async () => {
@@ -92,15 +94,32 @@ export function Home({ patientId }: { patientId: string | null }) {
         };
         if (cancelled) return;
         setRecall(data.recall);
-        // Spoken after her own greeting, so it chains rather than interrupts.
-        if (data.opener) setTimeout(() => aria.say(data.opener!), 2600);
+        setOpener(data.opener);
       } catch {
         if (!cancelled) setRecall([]);
       }
     })();
 
     return () => { cancelled = true; };
-  }, [aria, patientId, recall]);
+  }, [patientId, recall]);
+
+  /*
+   * Speak the recalled line once she is actually able to speak.
+   *
+   * The read and the speaking are separate on purpose. The banner is just text
+   * and should appear as soon as the database answers; the spoken opener has to
+   * wait for the scene to boot and for audio to be unlocked, which on a cold
+   * load is several seconds later. Gating the fetch on the avatar — as this did
+   * at first — meant a slow GLB download also delayed the memory lookup, and on
+   * production it simply had not happened yet by the time the page settled.
+   */
+  useEffect(() => {
+    if (!aria.ready || !opener || spokeOpener.current) return;
+    spokeOpener.current = true;
+    // Behind her own greeting, so it chains rather than talks over it.
+    const t = setTimeout(() => aria.say(opener), 2600);
+    return () => clearTimeout(t);
+  }, [aria, opener]);
 
   const react = useCallback(
     (line: string) => {
@@ -172,7 +191,7 @@ export function Home({ patientId }: { patientId: string | null }) {
           setSession("paused");
           aria.abortListen();
         }
-        if (res.redFlag) setTimeout(() => router.push("/case"), 1200);
+        if (res.redFlag) setTimeout(() => router.push("/patient/case"), 1200);
       } catch (err) {
         if (turnRef.current !== turn) return;
         setCase({
@@ -315,8 +334,8 @@ export function Home({ patientId }: { patientId: string | null }) {
         }}
         onHandsFreeToggle={() => setHandsFree((h) => !h)}
         onDismissError={() => setCase({ error: null })}
-        onAnalysis={() => router.push("/case")}
-        onDoctor={() => router.push("/doctors")}
+        onAnalysis={() => router.push("/patient/case")}
+        onDoctor={() => router.push("/patient/doctors")}
       />
     </>
   );
