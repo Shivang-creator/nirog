@@ -1,0 +1,496 @@
+<title>Nirog architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #171a21;
+    --soft: #55637a;
+    --faint: #8b9ab3;
+    --line: #d9e4f2;
+    --panel: #ffffff;
+
+    --blue: #2f7cf6;
+    --purple: #6933ff;
+    --green: #0f8a45;
+    --amber: #b45309;
+    --aws: #e8830c;
+  }
+
+  body {
+    background: #e3ecf8;
+    font-family: "Segoe UI Variable Display", "Segoe UI", Inter, system-ui, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .canvas {
+    position: relative;
+    width: 1800px;
+    height: 1592px;
+    background:
+      radial-gradient(1400px 700px at 15% -10%, #f2f7fd 0%, rgba(242,247,253,0) 60%),
+      #e3ecf8;
+    overflow: hidden;
+  }
+
+  .wires { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+
+  /* ---------- logos ---------- */
+  .lg { display: block; height: 18px; width: auto; flex: none; }
+  .lg.s16 { height: 16px; }
+  .lg.s22 { height: 24px; border-radius: 4px; }
+  .lg.s26 { height: 26px; }
+
+  /* ---------- header ---------- */
+  .h-title  { position: absolute; left: 56px; top: 34px; font-size: 33px; font-weight: 700; letter-spacing: -0.017em; }
+  .h-sub    { position: absolute; left: 56px; top: 78px; width: 1080px; font-size: 14.5px; line-height: 1.45; color: var(--soft); }
+  .h-right  { position: absolute; right: 56px; top: 38px; text-align: right; }
+  .h-right .ev { font-size: 13px; font-weight: 650; color: var(--purple); letter-spacing: 0.01em; }
+  .h-right .lk { font-size: 11.5px; color: var(--faint); margin-top: 5px; font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; }
+
+  /* ---------- bands ---------- */
+  .band {
+    position: absolute;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: #f1f6fc;
+  }
+  .band > .lbl {
+    position: absolute; left: 17px; top: 12px;
+    display: flex; align-items: center; gap: 9px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.085em; text-transform: uppercase;
+    color: var(--faint);
+  }
+  .band > .lbl .note {
+    text-transform: none; letter-spacing: 0.005em;
+    font-weight: 500; color: var(--faint); font-size: 11px;
+  }
+  .band > .lbl .sep { width: 1px; height: 14px; background: #c9d6e8; flex: none; }
+
+  .band.cdb   { background: #f5f2ff; border-color: #ddd4fb; }
+  .band.cdb   > .lbl { color: var(--purple); }
+  .band.core  { background: #edfaf2; border-color: #c6e8d5; }
+  .band.core  > .lbl { color: var(--green); }
+  .band.core  > .lbl .note { color: #3f8a63; }
+  .band.srv   { background: #f7fbff; }
+  .band.srv   > .lbl { color: var(--ink); }
+  .band.srv   > .lbl .note { color: var(--faint); }
+  .band.brw   > .lbl { color: var(--blue); }
+  .band.aws   > .lbl { color: var(--aws); }
+  .band.doc   { background: #f7fbff; }
+  .band.doc   > .lbl { color: var(--ink); }
+  .band.doc   > .lbl .note { color: var(--faint); }
+
+  /* ---------- boxes ---------- */
+  .box {
+    position: absolute;
+    background: var(--panel);
+    border: 1px solid #e0e9f5;
+    border-radius: 13px;
+    padding: 11px 13px;
+    box-shadow: 0 1px 2px rgba(28,52,94,0.05), 0 4px 12px rgba(28,52,94,0.035);
+  }
+  .box h4 {
+    font-size: 13.5px; font-weight: 680; letter-spacing: -0.005em;
+    margin-bottom: 5px; color: var(--ink);
+  }
+  .box h4.wl { display: flex; align-items: center; gap: 8px; }
+  .box h4 .m {
+    font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
+    font-size: 13px; font-weight: 600;
+  }
+  .box h4 .tag {
+    font-weight: 550; font-size: 11.5px; color: var(--faint);
+    letter-spacing: 0.01em; margin-left: 5px;
+  }
+  .box h4.wl .tag { margin-left: 0; }
+  .box p { font-size: 11.5px; line-height: 1.44; color: var(--soft); }
+  .box p + p { margin-top: 5px; }
+  .box code {
+    font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
+    font-size: 10.8px; color: #38455c; background: #eef4fc;
+    padding: 0 3px; border-radius: 4px;
+  }
+  .box .k { color: var(--ink); font-weight: 620; }
+
+  .chip {
+    display: inline-block; margin-top: 7px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.008em;
+    padding: 3px 8px; border-radius: 999px;
+    background: #eef4fc; color: #2b6ed6;
+  }
+  .chip.warn { background: #fdf1dd; color: var(--amber); }
+
+  .box.cdb  { border-color: #e2d8fb; }
+  .box.core { border-color: #cfeadb; }
+
+  /* schema list */
+  .cols { font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 10.9px; line-height: 1.55; color: var(--soft); }
+  .cols b { color: var(--ink); font-weight: 620; }
+  .cols .v { color: var(--purple); font-weight: 620; }
+  .cols .c { color: var(--faint); }
+
+  /* ---------- stack row ---------- */
+  .stack {
+    position: absolute;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: #f7fbff;
+    padding: 13px 22px;
+    overflow: hidden;
+  }
+  .stack > .lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.085em;
+    text-transform: uppercase; color: var(--faint); margin-bottom: 11px;
+  }
+  .stack .items { display: flex; flex-wrap: wrap; gap: 11px 20px; }
+  .stack .it { display: flex; align-items: center; gap: 7px; flex: none; }
+  .stack .it span { font-size: 11.5px; color: var(--soft); font-weight: 550; white-space: nowrap; }
+
+  /* footer strip */
+  .strip {
+    position: absolute;
+    border-radius: 18px;
+    background: #fdf3e2;
+    border: 1px solid #f0cf99;
+    padding: 15px 22px 15px 26px;
+    overflow: hidden;
+  }
+  .strip::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+    background: #f59e0b;
+  }
+  .strip h4 {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.085em;
+    text-transform: uppercase; color: var(--amber); margin-bottom: 7px;
+  }
+  .strip p { font-size: 12.5px; line-height: 1.5; color: #6b4715; }
+  .strip p .k { font-weight: 680; color: #4a300c; }
+  .strip code {
+    font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
+    font-size: 11.6px; background: #f8e6c8; padding: 0 4px; border-radius: 4px; color: #5a3a0d;
+  }
+</style>
+
+<div class="canvas">
+
+  <!-- ============ HEADER ============ -->
+  <div class="h-title">Nirog — agentic memory</div>
+  <div class="h-sub">
+    A stateless voice agent gets recall <i>between</i> visits from one CockroachDB cluster.
+    The embedding <b>finds</b> what the patient meant; a deterministic rule <b>decides</b> what it means.
+  </div>
+  <div class="h-right">
+    <div class="ev">CockroachDB × AWS Hackathon</div>
+    <div class="lk">nirog-memory.vercel.app</div>
+    <div class="lk">github.com/Shivang-creator/nirog</div>
+  </div>
+
+  <!-- ============ BROWSER ============ -->
+  <div class="band brw" style="left:56px; top:132px; width:280px; height:500px;">
+    <div class="lbl">
+      Browser <span class="sep"></span>
+      <img class="lg s16" src="{{logo:react}}" alt="React">
+      <img class="lg s16" src="{{logo:threedotjs}}" alt="Three.js">
+      <img class="lg s16" src="{{logo:tailwindcss}}" alt="Tailwind CSS">
+    </div>
+  </div>
+
+  <div class="box" style="left:72px; top:174px; width:248px; height:86px;">
+    <h4><span class="m">/</span><span class="tag">two doors</span></h4>
+    <p>Two doors, each through a sign-in that opens with a <span class="k">one-click demo door</span>.</p>
+  </div>
+
+  <div class="box" style="left:72px; top:268px; width:248px; height:146px;">
+    <h4 class="wl"><img class="lg s16" src="{{logo:threedotjs}}" alt=""><span class="m">/patient</span><span class="tag">ARIA</span></h4>
+    <p>The web application's Three.js scene byte-identical in an iframe — a <span class="k">6.2 MB</span> GLB, 11 facial morphs, fetched at <span class="k">low priority</span>: a navigation must outrank a nurse. <code>ReactNativeWebView</code> is shimmed to <code>window.parent</code>.</p>
+  </div>
+
+  <div class="box" style="left:72px; top:422px; width:248px; height:100px;">
+    <h4><span class="m">/portal</span><span class="tag">clinician</span></h4>
+    <p>Queue, chart, consult, audit. The chart reads <span class="k">the same CockroachDB rows</span> ARIA wrote — one record, two sides.</p>
+  </div>
+
+  <div class="box" style="left:72px; top:530px; width:248px; height:84px;">
+    <h4 class="wl"><img class="lg s16" src="{{logo:webrtc}}" alt=""><span class="m">/call/[room]</span><span class="tag">teleconsult</span></h4>
+    <p><span class="k">Real 1:1 WebRTC</span>, signalled through CockroachDB · Metered TURN.</p>
+  </div>
+
+  <!-- ============ AWS ============ -->
+  <div class="band aws" style="left:400px; top:132px; width:1344px; height:146px;">
+    <div class="lbl">Amazon Web Services <span class="note">· us-west-2 · IAM user <code style="font-size:10.5px">nirog-app</code>, scoped to exactly these calls</span></div>
+  </div>
+
+  <div style="position:absolute; left:416px; top:180px; width:251px;">
+    <img src="{{logo:aws-logo}}" alt="Amazon Web Services" style="height:38px; width:auto; display:block;">
+    <div style="font-size:11.5px; color:var(--faint); line-height:1.4; margin-top:9px;">
+      Four managed services:<br>ears, vectors, conversation, voice.
+    </div>
+  </div>
+
+  <div class="box" style="left:681px; top:178px; width:251px; height:84px;">
+    <h4 class="wl"><img class="lg s22" src="{{logo:aws-transcribe}}" alt="">Amazon Transcribe</h4>
+    <p>streaming · <span class="k">en-NZ</span> · PCM 16&nbsp;kHz<br>settled results only, never partials</p>
+  </div>
+
+  <div class="box" style="left:946px; top:178px; width:251px; height:84px;">
+    <h4 class="wl"><img class="lg s22" src="{{logo:aws-bedrock}}" alt="">Bedrock · Titan Embed V2</h4>
+    <p><code>titan-embed-text-v2:0</code><br><span class="k">1024-d</span>, <code>normalize:true</code></p>
+  </div>
+
+  <div class="box" style="left:1211px; top:178px; width:251px; height:84px;">
+    <h4 class="wl"><img class="lg s22" src="{{logo:aws-bedrock}}" alt="">Bedrock · gpt-oss-120b</h4>
+    <p>Converse API · reasoning blocks stripped before they reach the patient</p>
+  </div>
+
+  <div class="box" style="left:1476px; top:178px; width:251px; height:84px;">
+    <h4 class="wl"><img class="lg s22" src="{{logo:aws-polly}}" alt="">Amazon Polly</h4>
+    <p><span class="k">en-NZ neural</span> · ~400&nbsp;ms<br>the only en-NZ neural voice offered</p>
+  </div>
+
+  <!-- ============ SERVER ============ -->
+  <div class="band srv" style="left:400px; top:318px; width:1344px; height:216px;">
+    <div class="lbl">
+      <img class="lg s16" src="{{logo:nextdotjs}}" alt="Next.js">
+      <img class="lg s16" src="{{logo:typescript}}" alt="TypeScript">
+      <img class="lg s16" src="{{logo:vercel}}" alt="Vercel">
+      <span class="sep"></span>
+      Next.js 16 App Router — route handlers on Vercel <span class="note">· every credential stays server-side</span>
+    </div>
+  </div>
+
+  <div class="box" style="left:416px; top:364px; width:251px; height:160px;">
+    <h4><span class="m">/api/memory/context</span></h4>
+    <p><span class="k">Read before hello.</span> Loads this patient's complaints, runs the recurrence rule, and returns <span class="k">one line</span> for ARIA to open with — not a summary of the chart. A nurse who recited a bulleted history would be worse than one who said nothing.</p>
+    <span class="chip warn">unreachable → she says so</span>
+  </div>
+
+  <div class="box" style="left:681px; top:364px; width:251px; height:160px;">
+    <h4><span class="m">/api/transcribe</span></h4>
+    <p>WAV → PCM by walking RIFF chunks, streamed in ≤32&nbsp;KB events.</p>
+    <p>An empty transcript is an <span class="k">error</span>, never a 200 — silence would look like speech that said nothing and reopen the mic forever.</p>
+  </div>
+
+  <div class="box" style="left:946px; top:364px; width:251px; height:160px;">
+    <h4><span class="m">/api/memory/complaint</span></h4>
+    <p><span class="k">The write path, every turn:</span> embed → recall → resolve region → insert → audit.</p>
+    <p>Runs <i>beside</i> the model call — the consultation never waits for memory.</p>
+    <p>A lost row is survivable; a blocked conversation is not.</p>
+  </div>
+
+  <div class="box" style="left:1211px; top:364px; width:251px; height:160px;">
+    <h4><span class="m">/api/aria/chat</span><span class="tag">+ /handover</span></h4>
+    <p>Stateless: transcript in, reply + case state out. OLDCARTS, 8 questions, red flags.</p>
+    <p>Writes the <span class="k">intake</span> handover as candidates for a doctor to verify — never the memory chart below.</p>
+  </div>
+
+  <div class="box" style="left:1476px; top:364px; width:251px; height:160px;">
+    <h4><span class="m">/api/speak</span></h4>
+    <p>Text → mp3, base64 in a JSON envelope — the contract the scene already expected.</p>
+    <p>AWS keys never reach the browser.</p>
+  </div>
+
+  <!-- ============ COCKROACHDB ============ -->
+  <div class="band cdb" style="left:56px; top:648px; width:1688px; height:348px;">
+    <div class="lbl">
+      <img class="lg s16" src="{{logo:cockroachlabs}}" alt="CockroachDB">
+      <span class="sep"></span>
+      CockroachDB Serverless <span class="note">· v26.2.5 · AWS Mumbai (ap-south-1)</span>
+    </div>
+  </div>
+
+  <div class="box cdb" style="left:72px; top:698px; width:308px; height:216px;">
+    <h4><span class="m">patient</span> · <span class="m">visit</span></h4>
+    <div class="cols" style="margin-top:6px;">
+      <b>patient</b> <span class="c">— name, year_of_birth,</span><br>
+      <span class="c">&nbsp;&nbsp;sex, family_history</span><br><br>
+      <b>visit</b> <span class="c">— occurred_at, channel</span>
+    </div>
+    <p style="margin-top:10px;"><span class="k">visit</span> is the unit of recurrence: one consultation, however many sentences the patient says inside it.</p>
+    <div class="cols" style="margin-top:10px;"><b>call_signal</b> <span class="c">— SDP / ICE</span></div>
+    <p style="margin-top:5px;">The teleconsult is signalled through the same cluster: no second backend to carry the call.</p>
+  </div>
+
+  <div class="box cdb" style="left:398px; top:698px; width:500px; height:216px;">
+    <h4><span class="m">complaint</span><span class="tag">the memory itself</span></h4>
+    <div class="cols" style="margin-top:6px;">
+      <b>raw_text</b> <span class="c">— the patient's own words, never rewritten</span><br>
+      <b>body_region</b> <span class="c">— deterministic lexicon, not a model</span><br>
+      <b>region_source</b> <span class="c">—</span> lexicon <span class="c">|</span> inherited <span class="c">|</span> none<br>
+      <b>region_inherited_from</b> <span class="c">→ complaint(id)</span><br>
+      <b>embedding</b> <span class="v">VECTOR(1024)</span> <span class="c">· nullable on purpose</span><br>
+      <b>embed_model</b> <span class="c">— which backend actually answered</span>
+    </div>
+    <p style="margin-top:10px;">Complaint and vector are written in <span class="k">one statement</span>, in one row — no ETL, no window where a memory exists but is not yet searchable, and no way for the two to disagree.</p>
+    <p>The complaint is still recorded when the embedder is down: <span class="k">losing the index is degraded service, losing the words is data loss.</span></p>
+  </div>
+
+  <div class="box cdb" style="left:916px; top:698px; width:400px; height:216px;">
+    <h4><span class="m">VECTOR INDEX</span> complaint_embedding_idx</h4>
+    <div class="cols" style="margin-top:6px;">
+      (<b>patient_id</b>, embedding <span class="v">vector_cosine_ops</span>)
+    </div>
+    <p style="margin-top:10px;"><span class="k">Cosine, not L2.</span> Titan does not guarantee unit norm, and under L2 a long complaint sits far from a short one meaning the same thing.</p>
+    <p><span class="k">patient_id as prefix</span> — C-SPANN descends one patient's span, so latency follows one history, not the clinic's size. A query that cannot say “search everyone” cannot do it.</p>
+    <p>Cut-offs are per embedding space: <span class="k">0.85</span> Titan, <span class="k">0.55</span> offline. Distances across spaces are not comparable.</p>
+  </div>
+
+  <div class="box cdb" style="left:1334px; top:698px; width:392px; height:216px;">
+    <h4><span class="m">recall_event</span><span class="tag">audit</span></h4>
+    <div class="cols" style="margin-top:6px;">
+      <b>matches_found</b>, <b>top_distance</b>, <b>latency_ms</b><br>
+      <b>embed_provider</b> <span class="c">— bedrock: … | offline: …</span><br>
+      <b>degraded</b>, <b>degraded_reason</b>
+    </div>
+    <p style="margin-top:10px;">Every recall attempt, <span class="k">including the ones that failed</span>. “Why did it not flag this?” is answered by a row: the query ran, it returned nothing above threshold, here is the timestamp.</p>
+    <span class="chip warn">the outage is in the record, not inferred</span>
+  </div>
+
+  <div class="box cdb" style="left:72px; top:922px; width:1654px; height:58px; padding:10px 16px;">
+    <p style="font-size:11.5px;"><span class="k">All three CockroachDB cloud tools.</span> <span class="k">Distributed vector indexing</span> is the memory above · the <span class="k">managed MCP Server</span> read live schema and query plans during development — it caught the vector index missing its <code>patient_id</code> prefix, and an <code>IS NOT NULL</code> guard hiding unembedded rows that ranked as perfect matches · the <span class="k">ccloud CLI</span> confirmed cluster topology and version.</p>
+  </div>
+
+  <!-- ============ DETERMINISTIC CORE ============ -->
+  <div class="band core" style="left:56px; top:1042px; width:984px; height:238px;">
+    <div class="lbl">Deterministic core — no model touches this <span class="note">· the embedding finds candidates; a fixed rule decides what they mean</span></div>
+  </div>
+
+  <div class="box core" style="left:72px; top:1090px; width:306px; height:174px;">
+    <h4>resolveRegion()</h4>
+    <p>“the ache is <span class="k">back</span> again” names no body part — <i>back</i> there means <i>returned</i>. Read alone it is unclassifiable.</p>
+    <p>Read against what this patient said in July, it is obviously lumbar. Memory supplies the region and <code>region_source</code> records that it was <span class="k">inherited</span>, so a doctor can see the link was inferred.</p>
+  </div>
+
+  <div class="box core" style="left:394px; top:1090px; width:306px; height:174px;">
+    <h4>recurrence rule</h4>
+    <p><span class="k">≥ 3 separate visits</span> naming one body region <span class="k">within 90 days</span> (watch: 2 in 30). Arithmetic, no scoring — a doctor can check it on paper in ten seconds.</p>
+    <p>It counts <span class="k">visits, not complaints</span>. Three sentences in one appointment are one presentation; counting complaints would let a talkative patient trip the flag on day one.</p>
+  </div>
+
+  <div class="box core" style="left:716px; top:1090px; width:306px; height:174px;">
+    <h4>SBAR assembly <span style="font-weight:550; font-size:11.5px; color:var(--faint);">clinical/sbar.ts</span></h4>
+    <p>Every field built from rows. An earlier plan had gpt-oss rewrite it into prose — but a model smoothing “the ache is back again” into “recurrent lumbar pain” <span class="k">invents a claim the patient never made</span>.</p>
+    <p>It reports a pattern; it does not diagnose.</p>
+  </div>
+
+  <!-- ============ WHAT THE DOCTOR READS ============ -->
+  <div class="band doc" style="left:1080px; top:1042px; width:664px; height:238px;">
+    <div class="lbl">What the clinician reads <span class="note">· assembled from rows, never generated</span></div>
+  </div>
+
+  <div class="box" style="left:1096px; top:1090px; width:632px; height:82px;">
+    <h4>Recurrence banner</h4>
+    <p>“Why did you flag this?” is answered with <span class="k">a list of dates</span>, not a similarity score. Meera has one complaint and comes back clean — a tool that only ever finds patterns is not detecting anything.</p>
+  </div>
+
+  <div class="box" style="left:1096px; top:1182px; width:632px; height:82px;">
+    <h4>SBAR handover</h4>
+    <p>The same rows ARIA heard, in the form a doctor reads. Assessment reads <code>NOT ASSESSED</code> — not “no history” — when memory was unreachable.</p>
+  </div>
+
+  <!-- ============ REST OF THE STACK ============ -->
+  <div class="stack" style="left:56px; top:1308px; width:1688px; height:114px;">
+    <div class="lbl">Also in the stack</div>
+    <div class="items">
+      <div class="it"><img class="lg" src="{{logo:nodedotjs}}" alt=""><span>Node.js</span></div>
+      <div class="it"><img class="lg" src="{{logo:typescript}}" alt=""><span>TypeScript</span></div>
+      <div class="it"><img class="lg" src="{{logo:react}}" alt=""><span>React 19</span></div>
+      <div class="it"><img class="lg" src="{{logo:tailwindcss}}" alt=""><span>Tailwind CSS v4</span></div>
+      <div class="it"><img class="lg" src="{{logo:shadcnui}}" alt=""><span>shadcn/ui</span></div>
+      <div class="it"><img class="lg" src="{{logo:radixui}}" alt=""><span>Radix UI</span></div>
+      <div class="it"><img class="lg" src="{{logo:framer}}" alt=""><span>Motion</span></div>
+      <div class="it"><img class="lg" src="{{logo:lucide}}" alt=""><span>Lucide</span></div>
+      <div style="flex-basis:100%; height:0;"></div>
+      <div class="it"><img class="lg" src="{{logo:prisma}}" alt=""><span>Prisma</span></div>
+      <div class="it"><img class="lg" src="{{logo:zod}}" alt=""><span>Zod</span></div>
+      <div class="it"><img class="lg" src="{{logo:vitest}}" alt=""><span>Vitest — 139 tests</span></div>
+      <div class="it"><img class="lg" src="{{logo:playwright}}" alt=""><span>Playwright — npm run walk</span></div>
+      <div class="it"><img class="lg" src="{{logo:vite}}" alt=""><span>Vite</span></div>
+      <div class="it"><img class="lg" src="{{logo:eslint}}" alt=""><span>ESLint</span></div>
+      <div class="it"><img class="lg" src="{{logo:webrtc}}" alt=""><span>WebRTC</span></div>
+    </div>
+  </div>
+
+  <!-- ============ DEGRADATION CONTRACT ============ -->
+  <div class="strip" style="left:56px; top:1446px; width:1688px; height:108px;">
+    <h4>The degradation contract — cross-cutting</h4>
+    <p>Every memory read returns <code>MemoryOutcome{ ok, value, degraded, reason }</code>, never a bare array, so it is <span class="k">impossible to consume a result without handling the case where memory was down</span>. A failed lookup is never an empty list: “no prior complaints” and “could not check” would render identically, and a doctor reads that absence as reassurance. <span class="k">Absence of evidence is not evidence of absence</span> — and an agent that cannot tell the difference should not be near a patient.</p>
+  </div>
+
+  <!-- ============ WIRES ============ -->
+  <svg class="wires" viewBox="0 0 1800 1592" role="img"
+       aria-label="Nirog architecture: the browser calls Next.js route handlers on Vercel, which call Amazon Transcribe, Bedrock Titan embeddings, Bedrock gpt-oss and Amazon Polly, and read and write a CockroachDB cluster holding complaints with 1024-dimension vectors, a cosine vector index prefixed by patient id, and an audit table; those rows feed a deterministic core of region resolution, a recurrence rule and SBAR assembly, which is what the clinician reads. The teleconsult call is signalled through the same CockroachDB cluster, which was inspected through the managed MCP Server and the ccloud CLI during development.">
+    <defs>
+      <marker id="ah-slate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#7c8ba3"/>
+      </marker>
+      <marker id="ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#2f7cf6"/>
+      </marker>
+      <marker id="ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#0f8a45"/>
+      </marker>
+    </defs>
+
+    <!-- browser -> server -->
+    <line x1="338" y1="472" x2="396" y2="472" stroke="#7c8ba3" stroke-width="1.7" marker-end="url(#ah-slate)"/>
+    <text x="367" y="463" font-size="11" fill="#55637a" text-anchor="middle"
+          font-family="Segoe UI, system-ui, sans-serif">fetch</text>
+
+    <!-- server <-> aws (double headed) -->
+    <g stroke="#9aa8bf" stroke-width="1.6" fill="none">
+      <line x1="806"  y1="360" x2="806"  y2="266" marker-end="url(#ah-slate)" marker-start="url(#ah-slate)"/>
+      <line x1="1071" y1="360" x2="1071" y2="266" marker-end="url(#ah-slate)" marker-start="url(#ah-slate)"/>
+      <line x1="1336" y1="360" x2="1336" y2="266" marker-end="url(#ah-slate)" marker-start="url(#ah-slate)"/>
+      <line x1="1601" y1="360" x2="1601" y2="266" marker-end="url(#ah-slate)" marker-start="url(#ah-slate)"/>
+    </g>
+    <g font-family="Segoe UI, system-ui, sans-serif" font-size="11" fill="#55637a" text-anchor="middle">
+      <rect x="769"  y="288" width="74" height="20" rx="6" fill="#e3ecf8"/>
+      <text x="806"  y="302">16 kHz PCM</text>
+      <rect x="1026" y="288" width="90" height="20" rx="6" fill="#e3ecf8"/>
+      <text x="1071" y="302">1024-d vector</text>
+      <rect x="1294" y="288" width="84" height="20" rx="6" fill="#e3ecf8"/>
+      <text x="1336" y="302">Converse</text>
+      <rect x="1565" y="288" width="72" height="20" rx="6" fill="#e3ecf8"/>
+      <text x="1601" y="302">mp3 audio</text>
+    </g>
+
+    <!-- server -> cockroachdb.
+         Orthogonal elbows sharing one channel at y=568. The four horizontal
+         runs occupy disjoint x-ranges, so no line crosses another and each
+         label masks only its own line. -->
+    <g stroke="#2f7cf6" stroke-width="1.8" fill="none" stroke-linecap="butt">
+      <path d="M541,524  V560 Q541,568  549,568  H647  Q655,568  655,576  V690"  marker-end="url(#ah-blue)"/>
+      <path d="M990,524  V560 Q990,568  982,568  H783  Q775,568  775,576  V690"  marker-end="url(#ah-blue)"/>
+      <path d="M1071,524 V560 Q1071,568 1079,568 H1102 Q1110,568 1110,576 V690"  marker-end="url(#ah-blue)"/>
+      <path d="M1160,524 V560 Q1160,568 1168,568 H1472 Q1480,568 1480,576 V690"  marker-end="url(#ah-blue)"/>
+    </g>
+    <g font-family="Segoe UI, system-ui, sans-serif" font-size="11" fill="#1f5fc4" text-anchor="middle">
+      <rect x="570"  y="590" width="170" height="21" rx="6.5" fill="#ffffff" stroke="#cfe0fa"/>
+      <text x="655"  y="605">SELECT history · no vector</text>
+
+      <rect x="1019" y="590" width="182" height="21" rx="6.5" fill="#ffffff" stroke="#cfe0fa"/>
+      <text x="1110" y="605" font-family="Cascadia Mono, Consolas, monospace" font-size="10.5">ORDER BY embedding &lt;=&gt; $vec</text>
+
+      <rect x="1421" y="590" width="118" height="21" rx="6.5" fill="#ffffff" stroke="#cfe0fa"/>
+      <text x="1480" y="605">audit row, always</text>
+
+      <rect x="692"  y="616" width="166" height="21" rx="6.5" fill="#ffffff" stroke="#cfe0fa"/>
+      <text x="775"  y="631">INSERT complaint + vector</text>
+    </g>
+
+    <!-- cockroachdb -> deterministic core -->
+    <line x1="690" y1="984" x2="690" y2="1038" stroke="#0f8a45" stroke-width="1.9" marker-end="url(#ah-green)"/>
+    <rect x="574" y="1000" width="232" height="21" rx="6.5" fill="#ffffff" stroke="#c6e8d5"/>
+    <text x="690" y="1015" font-family="Segoe UI, system-ui, sans-serif" font-size="11"
+          fill="#0f7a3e" text-anchor="middle">rows — dates and words, never scores</text>
+
+    <!-- core -> clinician -->
+    <g stroke="#0f8a45" stroke-width="1.8" fill="none">
+      <line x1="1024" y1="1131" x2="1076" y2="1131"  marker-end="url(#ah-green)"/>
+      <line x1="1024" y1="1223" x2="1076" y2="1223" marker-end="url(#ah-green)"/>
+    </g>
+  </svg>
+
+</div>
