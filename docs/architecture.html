@@ -1,0 +1,496 @@
+<title>Nirog architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #171a21;
+    --soft: #55637a;
+    --faint: #8b9ab3;
+    --line: #d9e4f2;
+    --panel: #ffffff;
+
+    --blue: #2f7cf6;
+    --purple: #6933ff;
+    --green: #0f8a45;
+    --amber: #b45309;
+    --aws: #e8830c;
+  }
+
+  body {
+    background: #e3ecf8;
+    font-family: "Segoe UI Variable Display", "Segoe UI", Inter, system-ui, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .canvas {
+    position: relative;
+    width: 1800px;
+    height: 1592px;
+    background:
+      radial-gradient(1400px 700px at 15% -10%, #f2f7fd 0%, rgba(242,247,253,0) 60%),
+      #e3ecf8;
+    overflow: hidden;
+  }
+
+  .wires { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+
+  /* ---------- logos ---------- */
+  .lg { display: block; height: 18px; width: auto; flex: none; }
+  .lg.s16 { height: 16px; }
+  .lg.s22 { height: 24px; border-radius: 4px; }
+  .lg.s26 { height: 26px; }
+
+  /* ---------- header ---------- */
+  .h-title  { position: absolute; left: 56px; top: 34px; font-size: 33px; font-weight: 700; letter-spacing: -0.017em; }
+  .h-sub    { position: absolute; left: 56px; top: 78px; width: 1080px; font-size: 14.5px; line-height: 1.45; color: var(--soft); }
+  .h-right  { position: absolute; right: 56px; top: 38px; text-align: right; }
+  .h-right .ev { font-size: 13px; font-weight: 650; color: var(--purple); letter-spacing: 0.01em; }
+  .h-right .lk { font-size: 11.5px; color: var(--faint); margin-top: 5px; font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; }
+
+  /* ---------- bands ---------- */
+  .band {
+    position: absolute;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: #f1f6fc;
+  }
+  .band > .lbl {
+    position: absolute; left: 17px; top: 12px;
+    display: flex; align-items: center; gap: 9px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.085em; text-transform: uppercase;
+    color: var(--faint);
+  }
+  .band > .lbl .note {
+    text-transform: none; letter-spacing: 0.005em;
+    font-weight: 500; color: var(--faint); font-size: 11px;
+  }
+  .band > .lbl .sep { width: 1px; height: 14px; background: #c9d6e8; flex: none; }
+
+  .band.cdb   { background: #f5f2ff; border-color: #ddd4fb; }
+  .band.cdb   > .lbl { color: var(--purple); }
+  .band.core  { background: #edfaf2; border-color: #c6e8d5; }
+  .band.core  > .lbl { color: var(--green); }
+  .band.core  > .lbl .note { color: #3f8a63; }
+  .band.srv   { background: #f7fbff; }
+  .band.srv   > .lbl { color: var(--ink); }
+  .band.srv   > .lbl .note { color: var(--faint); }
+  .band.brw   > .lbl { color: var(--blue); }
+  .band.aws   > .lbl { color: var(--aws); }
+  .band.doc   { background: #f7fbff; }
+  .band.doc   > .lbl { color: var(--ink); }
+  .band.doc   > .lbl .note { color: var(--faint); }
+
+  /* ---------- boxes ---------- */
+  .box {
+    position: absolute;
+    background: var(--panel);
+    border: 1px solid #e0e9f5;
+    border-radius: 13px;
+    padding: 11px 13px;
+    box-shadow: 0 1px 2px rgba(28,52,94,0.05), 0 4px 12px rgba(28,52,94,0.035);
+  }
+  .box h4 {
+    font-size: 13.5px; font-weight: 680; letter-spacing: -0.005em;
+    margin-bottom: 5px; color: var(--ink);
+  }
+  .box h4.wl { display: flex; align-items: center; gap: 8px; }
+  .box h4 .m {
+    font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
+    font-size: 13px; font-weight: 600;
+  }
+  .box h4 .tag {
+    font-weight: 550; font-size: 11.5px; color: var(--faint);
+    letter-spacing: 0.01em; margin-left: 5px;
+  }
+  .box h4.wl .tag { margin-left: 0; }
+  .box p { font-size: 11.5px; line-height: 1.44; color: var(--soft); }
+  .box p + p { margin-top: 5px; }
+  .box code {
+    font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
+    font-size: 10.8px; color: #38455c; background: #eef4fc;
+    padding: 0 3px; border-radius: 4px;
+  }
+  .box .k { color: var(--ink); font-weight: 620; }
+
+  .chip {
+    display: inline-block; margin-top: 7px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.008em;
+    padding: 3px 8px; border-radius: 999px;
+    background: #eef4fc; color: #2b6ed6;
+  }
+  .chip.warn { background: #fdf1dd; color: var(--amber); }
+
+  .box.cdb  { border-color: #e2d8fb; }
+  .box.core { border-color: #cfeadb; }
+
+  /* schema list */
+  .cols { font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 10.9px; line-height: 1.55; color: var(--soft); }
+  .cols b { color: var(--ink); font-weight: 620; }
+  .cols .v { color: var(--purple); font-weight: 620; }
+  .cols .c { color: var(--faint); }
+
+  /* ---------- stack row ---------- */
+  .stack {
+    position: absolute;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: #f7fbff;
+    padding: 13px 22px;
+    overflow: hidden;
+  }
+  .stack > .lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.085em;
+    text-transform: uppercase; color: var(--faint); margin-bottom: 11px;
+  }
+  .stack .items { display: flex; flex-wrap: wrap; gap: 11px 20px; }
+  .stack .it { display: flex; align-items: center; gap: 7px; flex: none; }
+  .stack .it span { font-size: 11.5px; color: var(--soft); font-weight: 550; white-space: nowrap; }
+
+  /* footer strip */
+  .strip {
+    position: absolute;
+    border-radius: 18px;
+    background: #fdf3e2;
+    border: 1px solid #f0cf99;
+    padding: 15px 22px 15px 26px;
+    overflow: hidden;
+  }
+  .strip::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+    background: #f59e0b;
+  }
+  .strip h4 {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.085em;
+    text-transform: uppercase; color: var(--amber); margin-bottom: 7px;
+  }
+  .strip p { font-size: 12.5px; line-height: 1.5; color: #6b4715; }
+  .strip p .k { font-weight: 680; color: #4a300c; }
+  .strip code {
+    font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
+    font-size: 11.6px; background: #f8e6c8; padding: 0 4px; border-radius: 4px; color: #5a3a0d;
+  }
+</style>
+
+<div class="canvas">
+
+  <!-- ============ HEADER ============ -->
+  <div class="h-title">Nirog — agentic memory</div>
+  <div class="h-sub">
+    A stateless voice agent gets recall <i>between</i> visits from one CockroachDB cluster.
+    The embedding <b>finds</b> what the patient meant; a deterministic rule <b>decides</b> what it means.
+  </div>
+  <div class="h-right">
+    <div class="ev">CockroachDB × AWS Hackathon</div>
+    <div class="lk">nirog-memory.vercel.app</div>
+    <div class="lk">github.com/Shivang-creator/nirog</div>
+  </div>
+
+  <!-- ============ BROWSER ============ -->
+  <div class="band brw" style="left:56px; top:132px; width:280px; height:500px;">
+    <div class="lbl">
+      Browser <span class="sep"></span>
+      <img class="lg s16" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNjFEQUZCIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+UmVhY3Q8L3RpdGxlPjxwYXRoIGQ9Ik0xNC4yMyAxMi4wMDRhMi4yMzYgMi4yMzYgMCAwIDEtMi4yMzUgMi4yMzYgMi4yMzYgMi4yMzYgMCAwIDEtMi4yMzYtMi4yMzYgMi4yMzYgMi4yMzYgMCAwIDEgMi4yMzUtMi4yMzYgMi4yMzYgMi4yMzYgMCAwIDEgMi4yMzYgMi4yMzZ6bTIuNjQ4LTEwLjY5Yy0xLjM0NiAwLTMuMTA3Ljk2LTQuODg4IDIuNjIyLTEuNzgtMS42NTMtMy41NDItMi42MDItNC44ODctMi42MDItLjQxIDAtLjc4My4wOTMtMS4xMDYuMjc4LTEuMzc1Ljc5My0xLjY4MyAzLjI2NC0uOTczIDYuMzY1QzEuOTggOC45MTcgMCAxMC40MiAwIDEyLjAwNGMwIDEuNTkgMS45OSAzLjA5NyA1LjA0MyA0LjAzLS43MDQgMy4xMTMtLjM5IDUuNTg4Ljk4OCA2LjM4LjMyLjE4Ny42OS4yNzUgMS4xMDIuMjc1IDEuMzQ1IDAgMy4xMDctLjk2IDQuODg4LTIuNjI0IDEuNzggMS42NTQgMy41NDIgMi42MDMgNC44ODcgMi42MDMuNDEgMCAuNzgzLS4wOSAxLjEwNi0uMjc1IDEuMzc0LS43OTIgMS42ODMtMy4yNjMuOTczLTYuMzY1QzIyLjAyIDE1LjA5NiAyNCAxMy41OSAyNCAxMi4wMDRjMC0xLjU5LTEuOTktMy4wOTctNS4wNDMtNC4wMzIuNzA0LTMuMTEuMzktNS41ODctLjk4OC02LjM4LS4zMTgtLjE4NC0uNjg4LS4yNzctMS4wOTItLjI3OHptLS4wMDUgMS4wOXYuMDA2Yy4yMjUgMCAuNDA2LjA0NC41NTguMTI3LjY2Ni4zODIuOTU1IDEuODM1LjczIDMuNzA0LS4wNTQuNDYtLjE0Mi45NDUtLjI1IDEuNDQtLjk2LS4yMzYtMi4wMDYtLjQxNy0zLjEwNy0uNTM0LS42Ni0uOTA1LTEuMzQ1LTEuNzI3LTIuMDM1LTIuNDQ3IDEuNTkyLTEuNDggMy4wODctMi4yOTIgNC4xMDUtMi4yOTV6bS05Ljc3LjAyYzEuMDEyIDAgMi41MTQuODA4IDQuMTEgMi4yOC0uNjg2LjcyLTEuMzcgMS41MzctMi4wMiAyLjQ0Mi0xLjEwNy4xMTctMi4xNTQuMjk4LTMuMTEzLjUzOC0uMTEyLS40OS0uMTk1LS45NjQtLjI1NC0xLjQyLS4yMy0xLjg2OC4wNTQtMy4zMi43MTQtMy43MDcuMTktLjA5LjQtLjEyNy41NjMtLjEzMnptNC44ODIgMy4wNWMuNDU1LjQ2OC45MS45OTIgMS4zNiAxLjU2NC0uNDQtLjAyLS44OS0uMDM0LTEuMzQ1LS4wMzQtLjQ2IDAtLjkxNS4wMS0xLjM2LjAzNC40NC0uNTcyLjg5NS0xLjA5NiAxLjM0NS0xLjU2NXpNMTIgOC4xYy43NCAwIDEuNDc3LjAzNCAyLjIwMi4wOTMuNDA2LjU4Mi44MDIgMS4yMDMgMS4xODMgMS44Ni4zNzIuNjQuNzEgMS4yOSAxLjAxOCAxLjk0Ni0uMzA4LjY1NS0uNjQ2IDEuMzEtMS4wMTMgMS45NS0uMzguNjYtLjc3MyAxLjI4OC0xLjE4IDEuODctLjcyOC4wNjMtMS40NjYuMDk4LTIuMjEuMDk4LS43NCAwLTEuNDc3LS4wMzUtMi4yMDItLjA5My0uNDA2LS41ODItLjgwMi0xLjIwNC0xLjE4My0xLjg2LS4zNzItLjY0LS43MS0xLjI5LTEuMDE4LTEuOTQ2LjMwMy0uNjU3LjY0Ni0xLjMxMyAxLjAxMy0xLjk1NC4zOC0uNjYuNzczLTEuMjg2IDEuMTgtMS44NjguNzI4LS4wNjQgMS40NjYtLjA5OCAyLjIxLS4wOTh6bS0zLjYzNS4yNTRjLS4yNC4zNzctLjQ4Ljc2My0uNzA0IDEuMTYtLjIyNS4zOS0uNDM1Ljc4Mi0uNjM1IDEuMTc0LS4yNjUtLjY1Ni0uNDktMS4zMS0uNjc2LTEuOTQ3LjY0LS4xNSAxLjMxNS0uMjgzIDIuMDE1LS4zODZ6bTcuMjYgMGMuNjk1LjEwMyAxLjM2NS4yMyAyLjAwNi4zODctLjE4LjYzMi0uNDA1IDEuMjgyLS42NiAxLjkzMy0uMi0uMzktLjQxLS43ODMtLjY0LTEuMTc0LS4yMjUtLjM5Mi0uNDY1LS43NzQtLjcwNS0xLjE0NnptMy4wNjMuNjc1Yy40ODQuMTUuOTQ0LjMxNyAxLjM3NS40OTggMS43MzIuNzQgMi44NTIgMS43MDggMi44NTIgMi40NzYtLjAwNS43NjgtMS4xMjUgMS43NC0yLjg1NyAyLjQ3NS0uNDIuMTgtLjg4LjM0Mi0xLjM1NS40OTMtLjI4LS45NTgtLjY0Ni0xLjk1Ni0xLjEtMi45OC40NS0xLjAxNy44MS0yLjAxIDEuMDg1LTIuOTY0em0tMTMuMzk1LjAwNGMuMjc4Ljk2LjY0NSAxLjk1NyAxLjEgMi45OC0uNDUgMS4wMTctLjgxMiAyLjAxLTEuMDg2IDIuOTY0LS40ODQtLjE1LS45NDQtLjMxOC0xLjM3LS41LTEuNzMyLS43MzctMi44NTItMS43MDYtMi44NTItMi40NzQgMC0uNzY4IDEuMTItMS43NDIgMi44NTItMi40NzYuNDItLjE4Ljg4LS4zNDIgMS4zNTYtLjQ5NHptMTEuNjc4IDQuMjhjLjI2NS42NTcuNDkgMS4zMTIuNjc2IDEuOTQ4LS42NC4xNTctMS4zMTYuMjktMi4wMTYuMzkuMjQtLjM3NS40OC0uNzYyLjcwNS0xLjE1OC4yMjUtLjM5LjQzNS0uNzg4LjYzNi0xLjE4em0tOS45NDUuMDJjLjIuMzkyLjQxLjc4My42NCAxLjE3NS4yMy4zOS40NjUuNzcyLjcwNSAxLjE0My0uNjk1LS4xMDItMS4zNjUtLjIzLTIuMDA2LS4zODYuMTgtLjYzLjQwNi0xLjI4Mi42Ni0xLjkzM3pNMTcuOTIgMTYuMzJjLjExMi40OTMuMi45NjguMjU0IDEuNDIzLjIzIDEuODY4LS4wNTQgMy4zMi0uNzE0IDMuNzA4LS4xNDcuMDktLjMzOC4xMjgtLjU2My4xMjgtMS4wMTIgMC0yLjUxNC0uODA3LTQuMTEtMi4yOC42ODYtLjcyIDEuMzctMS41MzYgMi4wMi0yLjQ0IDEuMTA3LS4xMTggMi4xNTQtLjMgMy4xMTMtLjU0em0tMTEuODMuMDFjLjk2LjIzNCAyLjAwNi40MTUgMy4xMDcuNTMyLjY2LjkwNSAxLjM0NSAxLjcyNyAyLjAzNSAyLjQ0Ni0xLjU5NSAxLjQ4My0zLjA5MiAyLjI5NS00LjExIDIuMjk1LS4yMi0uMDA1LS40MDYtLjA1LS41NTMtLjEzMi0uNjY2LS4zOC0uOTU1LTEuODM0LS43My0zLjcwMy4wNTQtLjQ2LjE0Mi0uOTQ0LjI1LTEuNDM4em00LjU2LjY0Yy40NC4wMi44OS4wMzQgMS4zNDUuMDM0LjQ2IDAgLjkxNS0uMDEgMS4zNi0uMDM0LS40NC41NzItLjg5NSAxLjA5NS0xLjM0NSAxLjU2NS0uNDU1LS40Ny0uOTEtLjk5My0xLjM2LTEuNTY1eiIvPjwvc3ZnPg==" alt="React">
+      <img class="lg s16" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+VGhyZWUuanM8L3RpdGxlPjxwYXRoIGQ9Ik0uMzggMGEuMjY4LjI2OCAwIDAgMC0uMjU2LjMzMmwyLjg5NCAxMS43MTZhLjI2OC4yNjggMCAwIDAgLjAxLjA0bDIuODkgMTEuNzA4YS4yNjguMjY4IDAgMCAwIC40NDcuMTI4TDIzLjgwMiA3LjE1YS4yNjguMjY4IDAgMCAwLS4xMTItLjQ1bC01Ljc4NC0xLjY2N2EuMjY4LjI2OCAwIDAgMC0uMTIzLS4wMzVMNi4zOCAxLjcxNWEuMjY4LjI2OCAwIDAgMC0uMTQ0LS4wNEwuNDU2LjAxQS4yNjguMjY4IDAgMCAwIC4zOCAwem0uMzc0LjY1NEw1LjcxIDIuMDggMS45OSA1LjY2NHpNNi42MSAyLjM0bDQuODY0IDEuNC0zLjY1IDMuNTE1em0tLjUyMi4xMmwxLjIxNyA0LjkyNi00Ljg3Ny0xLjR6bTYuMjggMS41MzhsNC44NzggMS40MDQtMy42NjIgMy41M3ptLS41Mi4xM2wxLjIwOCA0LjktNC44NTMtMS4zOTJ6bTYuMyAxLjUzNGw0Ljk0NyAxLjQyNC0zLjcxNSAzLjU3NHptLS41MjQuMTJsMS4yMTUgNC45MjYtNC44NzYtMS4zOTh6bS0xNS40MzIuNjk2bDQuOTY0IDEuNDI0LTMuNzI2IDMuNTg2ek04LjA0NyA4LjE1bDQuODc3IDEuNC0zLjY2IDMuNTI3em0tLjUxOC4xMzdsMS4yMzYgNS4wMTctNC45NjMtMS40MzJ6bTYuMjc0IDEuNTM1bDQuOTY1IDEuNDI1LTMuNzMgMy41ODZ6bS0uNTIuMTI3bDEuMjM1IDUuMDEyLTQuOTU4LTEuNDN6bS05LjYzIDIuNDM4bDQuODczIDEuNDA2LTMuNjU2IDMuNTIzem01Ljg1NCAxLjY4N2w0Ljg2MyAxLjQwMy0zLjY0OCAzLjUxem0tLjU0LjA0bDEuMjE0IDQuOTI3LTQuODc1LTEuNHptLTMuODk2IDQuMDJsNS4wMzcgMS40NDItMy43ODIgMy42Mzh6Ii8+PC9zdmc+" alt="Three.js">
+      <img class="lg s16" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDZCNkQ0IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+VGFpbHdpbmQgQ1NTPC90aXRsZT48cGF0aCBkPSJNMTIuMDAxLDQuOGMtMy4yLDAtNS4yLDEuNi02LDQuOGMxLjItMS42LDIuNi0yLjIsNC4yLTEuOGMwLjkxMywwLjIyOCwxLjU2NSwwLjg5LDIuMjg4LDEuNjI0IEMxMy42NjYsMTAuNjE4LDE1LjAyNywxMiwxOC4wMDEsMTJjMy4yLDAsNS4yLTEuNiw2LTQuOGMtMS4yLDEuNi0yLjYsMi4yLTQuMiwxLjhjLTAuOTEzLTAuMjI4LTEuNTY1LTAuODktMi4yODgtMS42MjQgQzE2LjMzNyw2LjE4MiwxNC45NzYsNC44LDEyLjAwMSw0Ljh6IE02LjAwMSwxMmMtMy4yLDAtNS4yLDEuNi02LDQuOGMxLjItMS42LDIuNi0yLjIsNC4yLTEuOGMwLjkxMywwLjIyOCwxLjU2NSwwLjg5LDIuMjg4LDEuNjI0IGMxLjE3NywxLjE5NCwyLjUzOCwyLjU3Niw1LjUxMiwyLjU3NmMzLjIsMCw1LjItMS42LDYtNC44Yy0xLjIsMS42LTIuNiwyLjItNC4yLDEuOGMtMC45MTMtMC4yMjgtMS41NjUtMC44OS0yLjI4OC0xLjYyNCBDMTAuMzM3LDEzLjM4Miw4Ljk3NiwxMiw2LjAwMSwxMnoiLz48L3N2Zz4=" alt="Tailwind CSS">
+    </div>
+  </div>
+
+  <div class="box" style="left:72px; top:174px; width:248px; height:86px;">
+    <h4><span class="m">/login</span><span class="tag">two doors</span></h4>
+    <p>Two doors, each through a sign-in that opens with a <span class="k">one-click demo door</span>.</p>
+  </div>
+
+  <div class="box" style="left:72px; top:268px; width:248px; height:146px;">
+    <h4 class="wl"><img class="lg s16" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+VGhyZWUuanM8L3RpdGxlPjxwYXRoIGQ9Ik0uMzggMGEuMjY4LjI2OCAwIDAgMC0uMjU2LjMzMmwyLjg5NCAxMS43MTZhLjI2OC4yNjggMCAwIDAgLjAxLjA0bDIuODkgMTEuNzA4YS4yNjguMjY4IDAgMCAwIC40NDcuMTI4TDIzLjgwMiA3LjE1YS4yNjguMjY4IDAgMCAwLS4xMTItLjQ1bC01Ljc4NC0xLjY2N2EuMjY4LjI2OCAwIDAgMC0uMTIzLS4wMzVMNi4zOCAxLjcxNWEuMjY4LjI2OCAwIDAgMC0uMTQ0LS4wNEwuNDU2LjAxQS4yNjguMjY4IDAgMCAwIC4zOCAwem0uMzc0LjY1NEw1LjcxIDIuMDggMS45OSA1LjY2NHpNNi42MSAyLjM0bDQuODY0IDEuNC0zLjY1IDMuNTE1em0tLjUyMi4xMmwxLjIxNyA0LjkyNi00Ljg3Ny0xLjR6bTYuMjggMS41MzhsNC44NzggMS40MDQtMy42NjIgMy41M3ptLS41Mi4xM2wxLjIwOCA0LjktNC44NTMtMS4zOTJ6bTYuMyAxLjUzNGw0Ljk0NyAxLjQyNC0zLjcxNSAzLjU3NHptLS41MjQuMTJsMS4yMTUgNC45MjYtNC44NzYtMS4zOTh6bS0xNS40MzIuNjk2bDQuOTY0IDEuNDI0LTMuNzI2IDMuNTg2ek04LjA0NyA4LjE1bDQuODc3IDEuNC0zLjY2IDMuNTI3em0tLjUxOC4xMzdsMS4yMzYgNS4wMTctNC45NjMtMS40MzJ6bTYuMjc0IDEuNTM1bDQuOTY1IDEuNDI1LTMuNzMgMy41ODZ6bS0uNTIuMTI3bDEuMjM1IDUuMDEyLTQuOTU4LTEuNDN6bS05LjYzIDIuNDM4bDQuODczIDEuNDA2LTMuNjU2IDMuNTIzem01Ljg1NCAxLjY4N2w0Ljg2MyAxLjQwMy0zLjY0OCAzLjUxem0tLjU0LjA0bDEuMjE0IDQuOTI3LTQuODc1LTEuNHptLTMuODk2IDQuMDJsNS4wMzcgMS40NDItMy43ODIgMy42Mzh6Ii8+PC9zdmc+" alt=""><span class="m">/patient</span><span class="tag">ARIA</span></h4>
+    <p>The web application's Three.js scene byte-identical in an iframe — a <span class="k">6.2 MB</span> GLB, 11 facial morphs, fetched at <span class="k">low priority</span>: a navigation must outrank a nurse. <code>ReactNativeWebView</code> is shimmed to <code>window.parent</code>.</p>
+  </div>
+
+  <div class="box" style="left:72px; top:422px; width:248px; height:100px;">
+    <h4><span class="m">/portal</span><span class="tag">clinician</span></h4>
+    <p>Queue, chart, consult, audit. The chart reads <span class="k">the same CockroachDB rows</span> ARIA wrote — one record, two sides.</p>
+  </div>
+
+  <div class="box" style="left:72px; top:530px; width:248px; height:84px;">
+    <h4 class="wl"><img class="lg s16" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMzMzMzMzIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+V2ViUlRDPC90aXRsZT48cGF0aCBkPSJNMTEuOTk5OC4zNTk4Yy0yLjgyNzIgMC01LjE0NTYgMi4xNzMzLTUuMzc5MyA0Ljk0YTUuNDExNyA1LjQxMTcgMCAwMC0xLjIyMDctLjE0MDFDMi40MTggNS4xNTk3IDAgNy41Nzc5IDAgMTAuNTYwM2MwIDIuMjIwMyAxLjM0MSA0LjEyNzQgMy4yNTY4IDQuOTU3YTUuMzczNCA1LjM3MzQgMCAwMC0uNzM3MiAyLjcyMjdjMCAyLjk4MjMgMi40MTc1IDUuNDAwMiA1LjQwMDIgNS40MDAyIDEuNjYyNyAwIDMuMTQ5Mi0uNzUyMiA0LjEzOTctMS45MzQuOTkwNiAxLjE4MTggMi40NzczIDEuOTM0IDQuMTM5OCAxLjkzNCAyLjk4MyAwIDUuNDAwNC0yLjQxOCA1LjQwMDQtNS40MDAyIDAtLjk3MTktLjI1OC0xLjg4My0uNzA3My0yLjY3MDhDMjIuNzI4MyAxNC43MDY4IDI0IDEyLjg0MTggMjQgMTAuNjc5NWMwLTIuOTgyMy0yLjQxNzUtNS40MDA2LTUuMzk5OC01LjQwMDYtLjQxNyAwLS44MjIzLjA0OS0xLjIxMjEuMTM4NEMxNy4yMTEyIDIuNTk0OSAxNC44NjcuMzU5OCAxMS45OTk4LjM1OTh6bS01LjcxNyA2Ljg2ODNoMTAuNTkyNGMuNzQ1OCAwIDEuMzUyLjYwNSAxLjM1MiAxLjM0ODd2Ny42NDYzYzAgLjc0MzgtLjYwNjIgMS4zNDgyLTEuMzUyIDEuMzQ4MmgtMy42MDg1bC03LjI0IDMuNTQ5MSAxLjEwMDgtMy41NDkxaC0uODQ0N2MtLjc0NTggMC0xLjM1MjItLjYwNDQtMS4zNTIyLTEuMzQ4MlY4LjU3NjhjMC0uNzQzOC42MDY0LTEuMzQ4NyAxLjM1MjItMS4zNDg3WiIvPjwvc3ZnPg==" alt=""><span class="m">/call/[room]</span><span class="tag">teleconsult</span></h4>
+    <p><span class="k">Real 1:1 WebRTC</span>, signalled through CockroachDB · Metered TURN.</p>
+  </div>
+
+  <!-- ============ AWS ============ -->
+  <div class="band aws" style="left:400px; top:132px; width:1344px; height:146px;">
+    <div class="lbl">Amazon Web Services <span class="note">· us-west-2 · IAM user <code style="font-size:10.5px">nirog-app</code>, scoped to exactly these calls</span></div>
+  </div>
+
+  <div style="position:absolute; left:416px; top:180px; width:251px;">
+    <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAxOS4wLjEsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDApICAtLT4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiDQoJIHZpZXdCb3g9IjAgMCAzMDQgMTgyIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAzMDQgMTgyOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+DQo8c3R5bGUgdHlwZT0idGV4dC9jc3MiPg0KCS5zdDB7ZmlsbDojMjUyRjNFO30NCgkuc3Qxe2ZpbGwtcnVsZTpldmVub2RkO2NsaXAtcnVsZTpldmVub2RkO2ZpbGw6I0ZGOTkwMDt9DQo8L3N0eWxlPg0KPGc+DQoJPHBhdGggY2xhc3M9InN0MCIgZD0iTTg2LjQsNjYuNGMwLDMuNywwLjQsNi43LDEuMSw4LjljMC44LDIuMiwxLjgsNC42LDMuMiw3LjJjMC41LDAuOCwwLjcsMS42LDAuNywyLjNjMCwxLTAuNiwyLTEuOSwzbC02LjMsNC4yDQoJCWMtMC45LDAuNi0xLjgsMC45LTIuNiwwLjljLTEsMC0yLTAuNS0zLTEuNEM3Ni4yLDkwLDc1LDg4LjQsNzQsODYuOGMtMS0xLjctMi0zLjYtMy4xLTUuOWMtNy44LDkuMi0xNy42LDEzLjgtMjkuNCwxMy44DQoJCWMtOC40LDAtMTUuMS0yLjQtMjAtNy4yYy00LjktNC44LTcuNC0xMS4yLTcuNC0xOS4yYzAtOC41LDMtMTUuNCw5LjEtMjAuNmM2LjEtNS4yLDE0LjItNy44LDI0LjUtNy44YzMuNCwwLDYuOSwwLjMsMTAuNiwwLjgNCgkJYzMuNywwLjUsNy41LDEuMywxMS41LDIuMnYtNy4zYzAtNy42LTEuNi0xMi45LTQuNy0xNmMtMy4yLTMuMS04LjYtNC42LTE2LjMtNC42Yy0zLjUsMC03LjEsMC40LTEwLjgsMS4zYy0zLjcsMC45LTcuMywyLTEwLjgsMy40DQoJCWMtMS42LDAuNy0yLjgsMS4xLTMuNSwxLjNjLTAuNywwLjItMS4yLDAuMy0xLjYsMC4zYy0xLjQsMC0yLjEtMS0yLjEtMy4xdi00LjljMC0xLjYsMC4yLTIuOCwwLjctMy41YzAuNS0wLjcsMS40LTEuNCwyLjgtMi4xDQoJCWMzLjUtMS44LDcuNy0zLjMsMTIuNi00LjVjNC45LTEuMywxMC4xLTEuOSwxNS42LTEuOWMxMS45LDAsMjAuNiwyLjcsMjYuMiw4LjFjNS41LDUuNCw4LjMsMTMuNiw4LjMsMjQuNlY2Ni40eiBNNDUuOCw4MS42DQoJCWMzLjMsMCw2LjctMC42LDEwLjMtMS44YzMuNi0xLjIsNi44LTMuNCw5LjUtNi40YzEuNi0xLjksMi44LTQsMy40LTYuNGMwLjYtMi40LDEtNS4zLDEtOC43di00LjJjLTIuOS0wLjctNi0xLjMtOS4yLTEuNw0KCQljLTMuMi0wLjQtNi4zLTAuNi05LjQtMC42Yy02LjcsMC0xMS42LDEuMy0xNC45LDRjLTMuMywyLjctNC45LDYuNS00LjksMTEuNWMwLDQuNywxLjIsOC4yLDMuNywxMC42DQoJCUMzNy43LDgwLjQsNDEuMiw4MS42LDQ1LjgsODEuNnogTTEyNi4xLDkyLjRjLTEuOCwwLTMtMC4zLTMuOC0xYy0wLjgtMC42LTEuNS0yLTIuMS0zLjlMOTYuNywxMC4yYy0wLjYtMi0wLjktMy4zLTAuOS00DQoJCWMwLTEuNiwwLjgtMi41LDIuNC0yLjVoOS44YzEuOSwwLDMuMiwwLjMsMy45LDFjMC44LDAuNiwxLjQsMiwyLDMuOWwxNi44LDY2LjJsMTUuNi02Ni4yYzAuNS0yLDEuMS0zLjMsMS45LTMuOWMwLjgtMC42LDIuMi0xLDQtMQ0KCQloOGMxLjksMCwzLjIsMC4zLDQsMWMwLjgsMC42LDEuNSwyLDEuOSwzLjlsMTUuOCw2N2wxNy4zLTY3YzAuNi0yLDEuMy0zLjMsMi0zLjljMC44LTAuNiwyLjEtMSwzLjktMWg5LjNjMS42LDAsMi41LDAuOCwyLjUsMi41DQoJCWMwLDAuNS0wLjEsMS0wLjIsMS42Yy0wLjEsMC42LTAuMywxLjQtMC43LDIuNWwtMjQuMSw3Ny4zYy0wLjYsMi0xLjMsMy4zLTIuMSwzLjljLTAuOCwwLjYtMi4xLDEtMy44LDFoLTguNmMtMS45LDAtMy4yLTAuMy00LTENCgkJYy0wLjgtMC43LTEuNS0yLTEuOS00TDE1NiwyM2wtMTUuNCw2NC40Yy0wLjUsMi0xLjEsMy4zLTEuOSw0Yy0wLjgsMC43LTIuMiwxLTQsMUgxMjYuMXogTTI1NC42LDk1LjFjLTUuMiwwLTEwLjQtMC42LTE1LjQtMS44DQoJCWMtNS0xLjItOC45LTIuNS0xMS41LTRjLTEuNi0wLjktMi43LTEuOS0zLjEtMi44Yy0wLjQtMC45LTAuNi0xLjktMC42LTIuOHYtNS4xYzAtMi4xLDAuOC0zLjEsMi4zLTMuMWMwLjYsMCwxLjIsMC4xLDEuOCwwLjMNCgkJYzAuNiwwLjIsMS41LDAuNiwyLjUsMWMzLjQsMS41LDcuMSwyLjcsMTEsMy41YzQsMC44LDcuOSwxLjIsMTEuOSwxLjJjNi4zLDAsMTEuMi0xLjEsMTQuNi0zLjNjMy40LTIuMiw1LjItNS40LDUuMi05LjUNCgkJYzAtMi44LTAuOS01LjEtMi43LTdjLTEuOC0xLjktNS4yLTMuNi0xMC4xLTUuMkwyNDYsNTJjLTcuMy0yLjMtMTIuNy01LjctMTYtMTAuMmMtMy4zLTQuNC01LTkuMy01LTE0LjVjMC00LjIsMC45LTcuOSwyLjctMTEuMQ0KCQljMS44LTMuMiw0LjItNiw3LjItOC4yYzMtMi4zLDYuNC00LDEwLjQtNS4yYzQtMS4yLDguMi0xLjcsMTIuNi0xLjdjMi4yLDAsNC41LDAuMSw2LjcsMC40YzIuMywwLjMsNC40LDAuNyw2LjUsMS4xDQoJCWMyLDAuNSwzLjksMSw1LjcsMS42YzEuOCwwLjYsMy4yLDEuMiw0LjIsMS44YzEuNCwwLjgsMi40LDEuNiwzLDIuNWMwLjYsMC44LDAuOSwxLjksMC45LDMuM3Y0LjdjMCwyLjEtMC44LDMuMi0yLjMsMy4yDQoJCWMtMC44LDAtMi4xLTAuNC0zLjgtMS4yYy01LjctMi42LTEyLjEtMy45LTE5LjItMy45Yy01LjcsMC0xMC4yLDAuOS0xMy4zLDIuOGMtMy4xLDEuOS00LjcsNC44LTQuNyw4LjljMCwyLjgsMSw1LjIsMyw3LjENCgkJYzIsMS45LDUuNywzLjgsMTEsNS41bDE0LjIsNC41YzcuMiwyLjMsMTIuNCw1LjUsMTUuNSw5LjZjMy4xLDQuMSw0LjYsOC44LDQuNiwxNGMwLDQuMy0wLjksOC4yLTIuNiwxMS42DQoJCWMtMS44LDMuNC00LjIsNi40LTcuMyw4LjhjLTMuMSwyLjUtNi44LDQuMy0xMS4xLDUuNkMyNjQuNCw5NC40LDI1OS43LDk1LjEsMjU0LjYsOTUuMXoiLz4NCgk8Zz4NCgkJPHBhdGggY2xhc3M9InN0MSIgZD0iTTI3My41LDE0My43Yy0zMi45LDI0LjMtODAuNywzNy4yLTEyMS44LDM3LjJjLTU3LjYsMC0xMDkuNS0yMS4zLTE0OC43LTU2LjdjLTMuMS0yLjgtMC4zLTYuNiwzLjQtNC40DQoJCQljNDIuNCwyNC42LDk0LjcsMzkuNSwxNDguOCwzOS41YzM2LjUsMCw3Ni42LTcuNiwxMTMuNS0yMy4yQzI3NC4yLDEzMy42LDI3OC45LDEzOS43LDI3My41LDE0My43eiIvPg0KCQk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMjg3LjIsMTI4LjFjLTQuMi01LjQtMjcuOC0yLjYtMzguNS0xLjNjLTMuMiwwLjQtMy43LTIuNC0wLjgtNC41YzE4LjgtMTMuMiw0OS43LTkuNCw1My4zLTUNCgkJCWMzLjYsNC41LTEsMzUuNC0xOC42LDUwLjJjLTIuNywyLjMtNS4zLDEuMS00LjEtMS45QzI4Mi41LDE1NS43LDI5MS40LDEzMy40LDI4Ny4yLDEyOC4xeiIvPg0KCTwvZz4NCjwvZz4NCjwvc3ZnPg0K" alt="Amazon Web Services" style="height:38px; width:auto; display:block;">
+    <div style="font-size:11.5px; color:var(--faint); line-height:1.4; margin-top:9px;">
+      Four managed services:<br>ears, vectors, conversation, voice.
+    </div>
+  </div>
+
+  <div class="box" style="left:681px; top:178px; width:251px; height:84px;">
+    <h4 class="wl"><img class="lg s22" src="data:image/png;base64,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" alt="">Amazon Transcribe</h4>
+    <p>streaming · <span class="k">en-NZ</span> · PCM 16&nbsp;kHz<br>settled results only, never partials</p>
+  </div>
+
+  <div class="box" style="left:946px; top:178px; width:251px; height:84px;">
+    <h4 class="wl"><img class="lg s22" src="data:image/png;base64,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" alt="">Bedrock · Titan Embed V2</h4>
+    <p><code>titan-embed-text-v2:0</code><br><span class="k">1024-d</span>, <code>normalize:true</code></p>
+  </div>
+
+  <div class="box" style="left:1211px; top:178px; width:251px; height:84px;">
+    <h4 class="wl"><img class="lg s22" src="data:image/png;base64,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" alt="">Bedrock · gpt-oss-120b</h4>
+    <p>Converse API · reasoning blocks stripped before they reach the patient</p>
+  </div>
+
+  <div class="box" style="left:1476px; top:178px; width:251px; height:84px;">
+    <h4 class="wl"><img class="lg s22" src="data:image/png;base64,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" alt="">Amazon Polly</h4>
+    <p><span class="k">en-NZ neural</span> · ~400&nbsp;ms<br>the only en-NZ neural voice offered</p>
+  </div>
+
+  <!-- ============ SERVER ============ -->
+  <div class="band srv" style="left:400px; top:318px; width:1344px; height:216px;">
+    <div class="lbl">
+      <img class="lg s16" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+TmV4dC5qczwvdGl0bGU+PHBhdGggZD0iTTE4LjY2NSAyMS45NzhDMTYuNzU4IDIzLjI1NSAxNC40NjUgMjQgMTIgMjQgNS4zNzcgMjQgMCAxOC42MjMgMCAxMlM1LjM3NyAwIDEyIDBzMTIgNS4zNzcgMTIgMTJjMCAzLjU4My0xLjU3NCA2LjgwMS00LjA2NyA5LjAwMUw5LjIxOSA3LjJINy4ydjkuNTk2aDEuNjE1VjkuMjUxbDkuODUgMTIuNzI3Wm0tMy4zMzItOC41MzMgMS42IDIuMDYxVjcuMmgtMS42djYuMjQ1WiIvPjwvc3ZnPg==" alt="Next.js">
+      <img class="lg s16" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMzE3OEM2IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+VHlwZVNjcmlwdDwvdGl0bGU+PHBhdGggZD0iTTEuMTI1IDBDLjUwMiAwIDAgLjUwMiAwIDEuMTI1djIxLjc1QzAgMjMuNDk4LjUwMiAyNCAxLjEyNSAyNGgyMS43NWMuNjIzIDAgMS4xMjUtLjUwMiAxLjEyNS0xLjEyNVYxLjEyNUMyNCAuNTAyIDIzLjQ5OCAwIDIyLjg3NSAwem0xNy4zNjMgOS43NWMuNjEyIDAgMS4xNTQuMDM3IDEuNjI3LjExMWE2LjM4IDYuMzggMCAwIDEgMS4zMDYuMzR2Mi40NThhMy45NSAzLjk1IDAgMCAwLS42NDMtLjM2MSA1LjA5MyA1LjA5MyAwIDAgMC0uNzE3LS4yNiA1LjQ1MyA1LjQ1MyAwIDAgMC0xLjQyNi0uMmMtLjMgMC0uNTczLjAyOC0uODE5LjA4NmEyLjEgMi4xIDAgMCAwLS42MjMuMjQyYy0uMTcuMTA0LS4zLjIyOS0uMzkzLjM3NGEuODg4Ljg4OCAwIDAgMC0uMTQuNDljMCAuMTk2LjA1My4zNzMuMTU2LjUyOS4xMDQuMTU2LjI1Mi4zMDQuNDQzLjQ0NHMuNDIzLjI3Ni42OTYuNDFjLjI3My4xMzUuNTgyLjI3NC45MjYuNDE2LjQ3LjE5Ny44OTIuNDA3IDEuMjY2LjYyOC4zNzQuMjIyLjY5NS40NzMuOTYzLjc1My4yNjguMjc5LjQ3Mi41OTguNjE0Ljk1Ny4xNDIuMzU5LjIxNC43NzYuMjE0IDEuMjUzIDAgLjY1Ny0uMTI1IDEuMjEtLjM3MyAxLjY1NmEzLjAzMyAzLjAzMyAwIDAgMS0xLjAxMiAxLjA4NSA0LjM4IDQuMzggMCAwIDEtMS40ODcuNTk2Yy0uNTY2LjEyLTEuMTYzLjE4LTEuNzkuMThhOS45MTYgOS45MTYgMCAwIDEtMS44NC0uMTY0IDUuNTQ0IDUuNTQ0IDAgMCAxLTEuNTEyLS40OTN2LTIuNjNhNS4wMzMgNS4wMzMgMCAwIDAgMy4yMzcgMS4yYy4zMzMgMCAuNjI0LS4wMy44NzItLjA5LjI0OS0uMDYuNDU2LS4xNDQuNjIzLS4yNS4xNjYtLjEwOC4yOS0uMjM0LjM3My0uMzhhMS4wMjMgMS4wMjMgMCAwIDAtLjA3NC0xLjA4OSAyLjEyIDIuMTIgMCAwIDAtLjUzNy0uNSA1LjU5NyA1LjU5NyAwIDAgMC0uODA3LS40NDQgMjcuNzIgMjcuNzIgMCAwIDAtMS4wMDctLjQzNmMtLjkxOC0uMzgzLTEuNjAyLS44NTItMi4wNTMtMS40MDUtLjQ1LS41NTMtLjY3Ni0xLjIyMi0uNjc2LTIuMDA1IDAtLjYxNC4xMjMtMS4xNDEuMzY5LTEuNTgyLjI0Ni0uNDQxLjU4LS44MDQgMS4wMDQtMS4wODlhNC40OTQgNC40OTQgMCAwIDEgMS40Ny0uNjI5IDcuNTM2IDcuNTM2IDAgMCAxIDEuNzctLjIwMXptLTE1LjExMy4xODhoOS41NjN2Mi4xNjZIOS41MDZ2OS42NDZINi43ODl2LTkuNjQ2SDMuMzc1eiIvPjwvc3ZnPg==" alt="TypeScript">
+      <img class="lg s16" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+VmVyY2VsPC90aXRsZT48cGF0aCBkPSJtMTIgMS42MDggMTIgMjAuNzg0SDBaIi8+PC9zdmc+" alt="Vercel">
+      <span class="sep"></span>
+      Next.js 16 App Router — route handlers on Vercel <span class="note">· every credential stays server-side</span>
+    </div>
+  </div>
+
+  <div class="box" style="left:416px; top:364px; width:251px; height:160px;">
+    <h4><span class="m">/api/memory/context</span></h4>
+    <p><span class="k">Read before hello.</span> Loads this patient's complaints, runs the recurrence rule, and returns <span class="k">one line</span> for ARIA to open with — not a summary of the chart. A nurse who recited a bulleted history would be worse than one who said nothing.</p>
+    <span class="chip warn">unreachable → she says so</span>
+  </div>
+
+  <div class="box" style="left:681px; top:364px; width:251px; height:160px;">
+    <h4><span class="m">/api/transcribe</span></h4>
+    <p>WAV → PCM by walking RIFF chunks, streamed in ≤32&nbsp;KB events.</p>
+    <p>An empty transcript is an <span class="k">error</span>, never a 200 — silence would look like speech that said nothing and reopen the mic forever.</p>
+  </div>
+
+  <div class="box" style="left:946px; top:364px; width:251px; height:160px;">
+    <h4><span class="m">/api/memory/complaint</span></h4>
+    <p><span class="k">The write path, every turn:</span> embed → recall → resolve region → insert → audit.</p>
+    <p>Runs <i>beside</i> the model call — the consultation never waits for memory.</p>
+    <p>A lost row is survivable; a blocked conversation is not.</p>
+  </div>
+
+  <div class="box" style="left:1211px; top:364px; width:251px; height:160px;">
+    <h4><span class="m">/api/aria/chat</span><span class="tag">+ /handover</span></h4>
+    <p>Stateless: transcript in, reply + case state out. OLDCARTS, 8 questions, red flags.</p>
+    <p>Writes the <span class="k">intake</span> handover as candidates for a doctor to verify — never the memory chart below.</p>
+  </div>
+
+  <div class="box" style="left:1476px; top:364px; width:251px; height:160px;">
+    <h4><span class="m">/api/speak</span></h4>
+    <p>Text → mp3, base64 in a JSON envelope — the contract the scene already expected.</p>
+    <p>AWS keys never reach the browser.</p>
+  </div>
+
+  <!-- ============ COCKROACHDB ============ -->
+  <div class="band cdb" style="left:56px; top:648px; width:1688px; height:348px;">
+    <div class="lbl">
+      <img class="lg s16" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNjkzM0ZGIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+Q29ja3JvYWNoIExhYnM8L3RpdGxlPjxwYXRoIGQ9Ik0xNy42NDUgMTYuMTU1YTEzLjAxMyAxMy4wMTMgMCAwIDAtNC40NzktMTMuMjg3IDExLjYxNyAxMS42MTcgMCAwIDEgNS44MTUtMS41NDZjLjc3NCAwIDEuNTQ1LjA3NSAyLjMwNC4yMjZsLjMyLTEuMjgyQTEzLjA5MiAxMy4wOTIgMCAwIDAgMTguOTggMCAxMi45MyAxMi45MyAwIDAgMCAxMiAyLjAzIDEyLjkzMyAxMi45MzMgMCAwIDAgNS4wMjEgMEM0LjEzOSAwIDMuMjYuMDg5IDIuMzk2LjI2NmwuMzE5IDEuMjgyYTExLjgzIDExLjgzIDAgMCAxIDIuMzA2LS4yMjYgMTEuNjQgMTEuNjQgMCAwIDEgNS44MTcgMS41NDQgMTMuMDEgMTMuMDEgMCAwIDAgLjc5MiAyMC44NzdsLjM3NS4yNTcuMzczLS4yNTdjMi42MjQtMS44MDEgNC41LTQuNSA1LjI3LTcuNTg4em0tNi4zMDUgNS43QTExLjY4NyAxMS42ODcgMCAwIDEgNy44MjUgOS41MTlhMTMuMDggMTMuMDggMCAwIDAgMi40NTcgMi45NzcgMy4yMDIgMy4yMDIgMCAwIDEgMS4wNTggMi4zODN6bS42NjEtOS42NTdhMTEuNzE3IDExLjcxNyAwIDAgMS0yLjM0My0yLjMxNSAzLjIzIDMuMjMgMCAwIDEgMC0zLjkxMiAxMS42NyAxMS42NyAwIDAgMSAyLjM0Ny0yLjMzM2MuOS42NzEgMS42OTcgMS40NjggMi4zNyAyLjM2NmEzLjE5NyAzLjE5NyAwIDAgMSAwIDMuODMyIDExLjgxNiAxMS44MTYgMCAwIDEtMi4zNzQgMi4zNjJ6bS42NTkgOS42NTd2LTYuOTc2YTMuMjAyIDMuMjAyIDAgMCAxIDEuMDYtMi4zODMgMTMuMDI2IDEzLjAyNiAwIDAgMCAyLjQ1NS0yLjk3NyAxMS42OTQgMTEuNjk0IDAgMCAxLTMuNTE1IDEyLjMzNloiLz48L3N2Zz4=" alt="CockroachDB">
+      <span class="sep"></span>
+      CockroachDB Serverless <span class="note">· v26.2.5 · AWS Mumbai (ap-south-1)</span>
+    </div>
+  </div>
+
+  <div class="box cdb" style="left:72px; top:698px; width:308px; height:216px;">
+    <h4><span class="m">patient</span> · <span class="m">visit</span></h4>
+    <div class="cols" style="margin-top:6px;">
+      <b>patient</b> <span class="c">— name, year_of_birth,</span><br>
+      <span class="c">&nbsp;&nbsp;sex, family_history</span><br><br>
+      <b>visit</b> <span class="c">— occurred_at, channel</span>
+    </div>
+    <p style="margin-top:10px;"><span class="k">visit</span> is the unit of recurrence: one consultation, however many sentences the patient says inside it.</p>
+    <div class="cols" style="margin-top:10px;"><b>call_signal</b> <span class="c">— SDP / ICE</span></div>
+    <p style="margin-top:5px;">The teleconsult is signalled through the same cluster: no second backend to carry the call.</p>
+  </div>
+
+  <div class="box cdb" style="left:398px; top:698px; width:500px; height:216px;">
+    <h4><span class="m">complaint</span><span class="tag">the memory itself</span></h4>
+    <div class="cols" style="margin-top:6px;">
+      <b>raw_text</b> <span class="c">— the patient's own words, never rewritten</span><br>
+      <b>body_region</b> <span class="c">— deterministic lexicon, not a model</span><br>
+      <b>region_source</b> <span class="c">—</span> lexicon <span class="c">|</span> inherited <span class="c">|</span> none<br>
+      <b>region_inherited_from</b> <span class="c">→ complaint(id)</span><br>
+      <b>embedding</b> <span class="v">VECTOR(1024)</span> <span class="c">· nullable on purpose</span><br>
+      <b>embed_model</b> <span class="c">— which backend actually answered</span>
+    </div>
+    <p style="margin-top:10px;">Complaint and vector are written in <span class="k">one statement</span>, in one row — no ETL, no window where a memory exists but is not yet searchable, and no way for the two to disagree.</p>
+    <p>The complaint is still recorded when the embedder is down: <span class="k">losing the index is degraded service, losing the words is data loss.</span></p>
+  </div>
+
+  <div class="box cdb" style="left:916px; top:698px; width:400px; height:216px;">
+    <h4><span class="m">VECTOR INDEX</span> complaint_embedding_idx</h4>
+    <div class="cols" style="margin-top:6px;">
+      (<b>patient_id</b>, embedding <span class="v">vector_cosine_ops</span>)
+    </div>
+    <p style="margin-top:10px;"><span class="k">Cosine, not L2.</span> Titan does not guarantee unit norm, and under L2 a long complaint sits far from a short one meaning the same thing.</p>
+    <p><span class="k">patient_id as prefix</span> — C-SPANN descends one patient's span, so latency follows one history, not the clinic's size. A query that cannot say “search everyone” cannot do it.</p>
+    <p>Cut-offs are per embedding space: <span class="k">0.85</span> Titan, <span class="k">0.55</span> offline. Distances across spaces are not comparable.</p>
+  </div>
+
+  <div class="box cdb" style="left:1334px; top:698px; width:392px; height:216px;">
+    <h4><span class="m">recall_event</span><span class="tag">audit</span></h4>
+    <div class="cols" style="margin-top:6px;">
+      <b>matches_found</b>, <b>top_distance</b>, <b>latency_ms</b><br>
+      <b>embed_provider</b> <span class="c">— bedrock: … | offline: …</span><br>
+      <b>degraded</b>, <b>degraded_reason</b>
+    </div>
+    <p style="margin-top:10px;">Every recall attempt, <span class="k">including the ones that failed</span>. “Why did it not flag this?” is answered by a row: the query ran, it returned nothing above threshold, here is the timestamp.</p>
+    <span class="chip warn">the outage is in the record, not inferred</span>
+  </div>
+
+  <div class="box cdb" style="left:72px; top:922px; width:1654px; height:58px; padding:10px 16px;">
+    <p style="font-size:11.5px;"><span class="k">All three CockroachDB cloud tools.</span> <span class="k">Distributed vector indexing</span> is the memory above · the <span class="k">managed MCP Server</span> read live schema and query plans during development — it caught the vector index missing its <code>patient_id</code> prefix, and an <code>IS NOT NULL</code> guard hiding unembedded rows that ranked as perfect matches · the <span class="k">ccloud CLI</span> confirmed cluster topology and version.</p>
+  </div>
+
+  <!-- ============ DETERMINISTIC CORE ============ -->
+  <div class="band core" style="left:56px; top:1042px; width:984px; height:238px;">
+    <div class="lbl">Deterministic core — no model touches this <span class="note">· the embedding finds candidates; a fixed rule decides what they mean</span></div>
+  </div>
+
+  <div class="box core" style="left:72px; top:1090px; width:306px; height:174px;">
+    <h4>resolveRegion()</h4>
+    <p>“the ache is <span class="k">back</span> again” names no body part — <i>back</i> there means <i>returned</i>. Read alone it is unclassifiable.</p>
+    <p>Read against what this patient said in July, it is obviously lumbar. Memory supplies the region and <code>region_source</code> records that it was <span class="k">inherited</span>, so a doctor can see the link was inferred.</p>
+  </div>
+
+  <div class="box core" style="left:394px; top:1090px; width:306px; height:174px;">
+    <h4>recurrence rule</h4>
+    <p><span class="k">≥ 3 separate visits</span> naming one body region <span class="k">within 90 days</span> (watch: 2 in 30). Arithmetic, no scoring — a doctor can check it on paper in ten seconds.</p>
+    <p>It counts <span class="k">visits, not complaints</span>. Three sentences in one appointment are one presentation; counting complaints would let a talkative patient trip the flag on day one.</p>
+  </div>
+
+  <div class="box core" style="left:716px; top:1090px; width:306px; height:174px;">
+    <h4>SBAR assembly <span style="font-weight:550; font-size:11.5px; color:var(--faint);">clinical/sbar.ts</span></h4>
+    <p>Every field built from rows. An earlier plan had gpt-oss rewrite it into prose — but a model smoothing “the ache is back again” into “recurrent lumbar pain” <span class="k">invents a claim the patient never made</span>.</p>
+    <p>It reports a pattern; it does not diagnose.</p>
+  </div>
+
+  <!-- ============ WHAT THE DOCTOR READS ============ -->
+  <div class="band doc" style="left:1080px; top:1042px; width:664px; height:238px;">
+    <div class="lbl">What the clinician reads <span class="note">· assembled from rows, never generated</span></div>
+  </div>
+
+  <div class="box" style="left:1096px; top:1090px; width:632px; height:82px;">
+    <h4>Recurrence banner</h4>
+    <p>“Why did you flag this?” is answered with <span class="k">a list of dates</span>, not a similarity score. Meera has one complaint and comes back clean — a tool that only ever finds patterns is not detecting anything.</p>
+  </div>
+
+  <div class="box" style="left:1096px; top:1182px; width:632px; height:82px;">
+    <h4>SBAR handover</h4>
+    <p>The same rows ARIA heard, in the form a doctor reads. Assessment reads <code>NOT ASSESSED</code> — not “no history” — when memory was unreachable.</p>
+  </div>
+
+  <!-- ============ REST OF THE STACK ============ -->
+  <div class="stack" style="left:56px; top:1308px; width:1688px; height:114px;">
+    <div class="lbl">Also in the stack</div>
+    <div class="items">
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNUZBMDRFIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+Tm9kZS5qczwvdGl0bGU+PHBhdGggZD0iTTExLjk5OCwyNGMtMC4zMjEsMC0wLjY0MS0wLjA4NC0wLjkyMi0wLjI0N2wtMi45MzYtMS43MzdjLTAuNDM4LTAuMjQ1LTAuMjI0LTAuMzMyLTAuMDgtMC4zODMgYzAuNTg1LTAuMjAzLDAuNzAzLTAuMjUsMS4zMjgtMC42MDRjMC4wNjUtMC4wMzcsMC4xNTEtMC4wMjMsMC4yMTgsMC4wMTdsMi4yNTYsMS4zMzljMC4wODIsMC4wNDUsMC4xOTcsMC4wNDUsMC4yNzIsMGw4Ljc5NS01LjA3NiBjMC4wODItMC4wNDcsMC4xMzQtMC4xNDEsMC4xMzQtMC4yMzhWNi45MjFjMC0wLjA5OS0wLjA1My0wLjE5Mi0wLjEzNy0wLjI0MmwtOC43OTEtNS4wNzJjLTAuMDgxLTAuMDQ3LTAuMTg5LTAuMDQ3LTAuMjcxLDAgTDMuMDc1LDYuNjhDMi45OSw2LjcyOSwyLjkzNiw2LjgyNSwyLjkzNiw2LjkyMXYxMC4xNWMwLDAuMDk3LDAuMDU0LDAuMTg5LDAuMTM5LDAuMjM1bDIuNDA5LDEuMzkyIGMxLjMwNywwLjY1NCwyLjEwOC0wLjExNiwyLjEwOC0wLjg5VjcuNzg3YzAtMC4xNDIsMC4xMTQtMC4yNTMsMC4yNTYtMC4yNTNoMS4xMTVjMC4xMzksMCwwLjI1NSwwLjExMiwwLjI1NSwwLjI1M3YxMC4wMjEgYzAsMS43NDUtMC45NSwyLjc0NS0yLjYwNCwyLjc0NWMtMC41MDgsMC0wLjkwOSwwLTIuMDI2LTAuNTUxTDIuMjgsMTguNjc1Yy0wLjU3LTAuMzI5LTAuOTIyLTAuOTQ1LTAuOTIyLTEuNjA0VjYuOTIxIGMwLTAuNjU5LDAuMzUzLTEuMjc1LDAuOTIyLTEuNjAzbDguNzk1LTUuMDgyYzAuNTU3LTAuMzE1LDEuMjk2LTAuMzE1LDEuODQ4LDBsOC43OTQsNS4wODJjMC41NywwLjMyOSwwLjkyNCwwLjk0NCwwLjkyNCwxLjYwMyB2MTAuMTVjMCwwLjY1OS0wLjM1NCwxLjI3My0wLjkyNCwxLjYwNGwtOC43OTQsNS4wNzhDMTIuNjQzLDIzLjkxNiwxMi4zMjQsMjQsMTEuOTk4LDI0eiBNMTkuMDk5LDEzLjk5MyBjMC0xLjktMS4yODQtMi40MDYtMy45ODctMi43NjNjLTIuNzMxLTAuMzYxLTMuMDA5LTAuNTQ4LTMuMDA5LTEuMTg3YzAtMC41MjgsMC4yMzUtMS4yMzMsMi4yNTgtMS4yMzMgYzEuODA3LDAsMi40NzMsMC4zODksMi43NDcsMS42MDdjMC4wMjQsMC4xMTUsMC4xMjksMC4xOTksMC4yNDcsMC4xOTloMS4xNDFjMC4wNzEsMCwwLjEzOC0wLjAzMSwwLjE4Ni0wLjA4MSBjMC4wNDgtMC4wNTQsMC4wNzQtMC4xMjMsMC4wNjctMC4xOTZjLTAuMTc3LTIuMDk4LTEuNTcxLTMuMDc2LTQuMzg4LTMuMDc2Yy0yLjUwOCwwLTQuMDA0LDEuMDU4LTQuMDA0LDIuODMzIGMwLDEuOTI1LDEuNDg4LDIuNDU3LDMuODk1LDIuNjk1YzIuODgsMC4yODIsMy4xMDMsMC43MDMsMy4xMDMsMS4yNjljMCwwLjk4My0wLjc4OSwxLjQwMi0yLjY0MiwxLjQwMiBjLTIuMzI3LDAtMi44MzktMC41ODQtMy4wMTEtMS43NDJjLTAuMDItMC4xMjQtMC4xMjYtMC4yMTUtMC4yNTMtMC4yMTVoLTEuMTM3Yy0wLjE0MSwwLTAuMjU0LDAuMTEyLTAuMjU0LDAuMjUzIGMwLDEuNDgyLDAuODA2LDMuMjQ4LDQuNjU1LDMuMjQ4QzE3LjUwMSwxNy4wMDcsMTkuMDk5LDE1LjkxLDE5LjA5OSwxMy45OTN6Ii8+PC9zdmc+" alt=""><span>Node.js</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMzE3OEM2IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+VHlwZVNjcmlwdDwvdGl0bGU+PHBhdGggZD0iTTEuMTI1IDBDLjUwMiAwIDAgLjUwMiAwIDEuMTI1djIxLjc1QzAgMjMuNDk4LjUwMiAyNCAxLjEyNSAyNGgyMS43NWMuNjIzIDAgMS4xMjUtLjUwMiAxLjEyNS0xLjEyNVYxLjEyNUMyNCAuNTAyIDIzLjQ5OCAwIDIyLjg3NSAwem0xNy4zNjMgOS43NWMuNjEyIDAgMS4xNTQuMDM3IDEuNjI3LjExMWE2LjM4IDYuMzggMCAwIDEgMS4zMDYuMzR2Mi40NThhMy45NSAzLjk1IDAgMCAwLS42NDMtLjM2MSA1LjA5MyA1LjA5MyAwIDAgMC0uNzE3LS4yNiA1LjQ1MyA1LjQ1MyAwIDAgMC0xLjQyNi0uMmMtLjMgMC0uNTczLjAyOC0uODE5LjA4NmEyLjEgMi4xIDAgMCAwLS42MjMuMjQyYy0uMTcuMTA0LS4zLjIyOS0uMzkzLjM3NGEuODg4Ljg4OCAwIDAgMC0uMTQuNDljMCAuMTk2LjA1My4zNzMuMTU2LjUyOS4xMDQuMTU2LjI1Mi4zMDQuNDQzLjQ0NHMuNDIzLjI3Ni42OTYuNDFjLjI3My4xMzUuNTgyLjI3NC45MjYuNDE2LjQ3LjE5Ny44OTIuNDA3IDEuMjY2LjYyOC4zNzQuMjIyLjY5NS40NzMuOTYzLjc1My4yNjguMjc5LjQ3Mi41OTguNjE0Ljk1Ny4xNDIuMzU5LjIxNC43NzYuMjE0IDEuMjUzIDAgLjY1Ny0uMTI1IDEuMjEtLjM3MyAxLjY1NmEzLjAzMyAzLjAzMyAwIDAgMS0xLjAxMiAxLjA4NSA0LjM4IDQuMzggMCAwIDEtMS40ODcuNTk2Yy0uNTY2LjEyLTEuMTYzLjE4LTEuNzkuMThhOS45MTYgOS45MTYgMCAwIDEtMS44NC0uMTY0IDUuNTQ0IDUuNTQ0IDAgMCAxLTEuNTEyLS40OTN2LTIuNjNhNS4wMzMgNS4wMzMgMCAwIDAgMy4yMzcgMS4yYy4zMzMgMCAuNjI0LS4wMy44NzItLjA5LjI0OS0uMDYuNDU2LS4xNDQuNjIzLS4yNS4xNjYtLjEwOC4yOS0uMjM0LjM3My0uMzhhMS4wMjMgMS4wMjMgMCAwIDAtLjA3NC0xLjA4OSAyLjEyIDIuMTIgMCAwIDAtLjUzNy0uNSA1LjU5NyA1LjU5NyAwIDAgMC0uODA3LS40NDQgMjcuNzIgMjcuNzIgMCAwIDAtMS4wMDctLjQzNmMtLjkxOC0uMzgzLTEuNjAyLS44NTItMi4wNTMtMS40MDUtLjQ1LS41NTMtLjY3Ni0xLjIyMi0uNjc2LTIuMDA1IDAtLjYxNC4xMjMtMS4xNDEuMzY5LTEuNTgyLjI0Ni0uNDQxLjU4LS44MDQgMS4wMDQtMS4wODlhNC40OTQgNC40OTQgMCAwIDEgMS40Ny0uNjI5IDcuNTM2IDcuNTM2IDAgMCAxIDEuNzctLjIwMXptLTE1LjExMy4xODhoOS41NjN2Mi4xNjZIOS41MDZ2OS42NDZINi43ODl2LTkuNjQ2SDMuMzc1eiIvPjwvc3ZnPg==" alt=""><span>TypeScript</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNjFEQUZCIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+UmVhY3Q8L3RpdGxlPjxwYXRoIGQ9Ik0xNC4yMyAxMi4wMDRhMi4yMzYgMi4yMzYgMCAwIDEtMi4yMzUgMi4yMzYgMi4yMzYgMi4yMzYgMCAwIDEtMi4yMzYtMi4yMzYgMi4yMzYgMi4yMzYgMCAwIDEgMi4yMzUtMi4yMzYgMi4yMzYgMi4yMzYgMCAwIDEgMi4yMzYgMi4yMzZ6bTIuNjQ4LTEwLjY5Yy0xLjM0NiAwLTMuMTA3Ljk2LTQuODg4IDIuNjIyLTEuNzgtMS42NTMtMy41NDItMi42MDItNC44ODctMi42MDItLjQxIDAtLjc4My4wOTMtMS4xMDYuMjc4LTEuMzc1Ljc5My0xLjY4MyAzLjI2NC0uOTczIDYuMzY1QzEuOTggOC45MTcgMCAxMC40MiAwIDEyLjAwNGMwIDEuNTkgMS45OSAzLjA5NyA1LjA0MyA0LjAzLS43MDQgMy4xMTMtLjM5IDUuNTg4Ljk4OCA2LjM4LjMyLjE4Ny42OS4yNzUgMS4xMDIuMjc1IDEuMzQ1IDAgMy4xMDctLjk2IDQuODg4LTIuNjI0IDEuNzggMS42NTQgMy41NDIgMi42MDMgNC44ODcgMi42MDMuNDEgMCAuNzgzLS4wOSAxLjEwNi0uMjc1IDEuMzc0LS43OTIgMS42ODMtMy4yNjMuOTczLTYuMzY1QzIyLjAyIDE1LjA5NiAyNCAxMy41OSAyNCAxMi4wMDRjMC0xLjU5LTEuOTktMy4wOTctNS4wNDMtNC4wMzIuNzA0LTMuMTEuMzktNS41ODctLjk4OC02LjM4LS4zMTgtLjE4NC0uNjg4LS4yNzctMS4wOTItLjI3OHptLS4wMDUgMS4wOXYuMDA2Yy4yMjUgMCAuNDA2LjA0NC41NTguMTI3LjY2Ni4zODIuOTU1IDEuODM1LjczIDMuNzA0LS4wNTQuNDYtLjE0Mi45NDUtLjI1IDEuNDQtLjk2LS4yMzYtMi4wMDYtLjQxNy0zLjEwNy0uNTM0LS42Ni0uOTA1LTEuMzQ1LTEuNzI3LTIuMDM1LTIuNDQ3IDEuNTkyLTEuNDggMy4wODctMi4yOTIgNC4xMDUtMi4yOTV6bS05Ljc3LjAyYzEuMDEyIDAgMi41MTQuODA4IDQuMTEgMi4yOC0uNjg2LjcyLTEuMzcgMS41MzctMi4wMiAyLjQ0Mi0xLjEwNy4xMTctMi4xNTQuMjk4LTMuMTEzLjUzOC0uMTEyLS40OS0uMTk1LS45NjQtLjI1NC0xLjQyLS4yMy0xLjg2OC4wNTQtMy4zMi43MTQtMy43MDcuMTktLjA5LjQtLjEyNy41NjMtLjEzMnptNC44ODIgMy4wNWMuNDU1LjQ2OC45MS45OTIgMS4zNiAxLjU2NC0uNDQtLjAyLS44OS0uMDM0LTEuMzQ1LS4wMzQtLjQ2IDAtLjkxNS4wMS0xLjM2LjAzNC40NC0uNTcyLjg5NS0xLjA5NiAxLjM0NS0xLjU2NXpNMTIgOC4xYy43NCAwIDEuNDc3LjAzNCAyLjIwMi4wOTMuNDA2LjU4Mi44MDIgMS4yMDMgMS4xODMgMS44Ni4zNzIuNjQuNzEgMS4yOSAxLjAxOCAxLjk0Ni0uMzA4LjY1NS0uNjQ2IDEuMzEtMS4wMTMgMS45NS0uMzguNjYtLjc3MyAxLjI4OC0xLjE4IDEuODctLjcyOC4wNjMtMS40NjYuMDk4LTIuMjEuMDk4LS43NCAwLTEuNDc3LS4wMzUtMi4yMDItLjA5My0uNDA2LS41ODItLjgwMi0xLjIwNC0xLjE4My0xLjg2LS4zNzItLjY0LS43MS0xLjI5LTEuMDE4LTEuOTQ2LjMwMy0uNjU3LjY0Ni0xLjMxMyAxLjAxMy0xLjk1NC4zOC0uNjYuNzczLTEuMjg2IDEuMTgtMS44NjguNzI4LS4wNjQgMS40NjYtLjA5OCAyLjIxLS4wOTh6bS0zLjYzNS4yNTRjLS4yNC4zNzctLjQ4Ljc2My0uNzA0IDEuMTYtLjIyNS4zOS0uNDM1Ljc4Mi0uNjM1IDEuMTc0LS4yNjUtLjY1Ni0uNDktMS4zMS0uNjc2LTEuOTQ3LjY0LS4xNSAxLjMxNS0uMjgzIDIuMDE1LS4zODZ6bTcuMjYgMGMuNjk1LjEwMyAxLjM2NS4yMyAyLjAwNi4zODctLjE4LjYzMi0uNDA1IDEuMjgyLS42NiAxLjkzMy0uMi0uMzktLjQxLS43ODMtLjY0LTEuMTc0LS4yMjUtLjM5Mi0uNDY1LS43NzQtLjcwNS0xLjE0NnptMy4wNjMuNjc1Yy40ODQuMTUuOTQ0LjMxNyAxLjM3NS40OTggMS43MzIuNzQgMi44NTIgMS43MDggMi44NTIgMi40NzYtLjAwNS43NjgtMS4xMjUgMS43NC0yLjg1NyAyLjQ3NS0uNDIuMTgtLjg4LjM0Mi0xLjM1NS40OTMtLjI4LS45NTgtLjY0Ni0xLjk1Ni0xLjEtMi45OC40NS0xLjAxNy44MS0yLjAxIDEuMDg1LTIuOTY0em0tMTMuMzk1LjAwNGMuMjc4Ljk2LjY0NSAxLjk1NyAxLjEgMi45OC0uNDUgMS4wMTctLjgxMiAyLjAxLTEuMDg2IDIuOTY0LS40ODQtLjE1LS45NDQtLjMxOC0xLjM3LS41LTEuNzMyLS43MzctMi44NTItMS43MDYtMi44NTItMi40NzQgMC0uNzY4IDEuMTItMS43NDIgMi44NTItMi40NzYuNDItLjE4Ljg4LS4zNDIgMS4zNTYtLjQ5NHptMTEuNjc4IDQuMjhjLjI2NS42NTcuNDkgMS4zMTIuNjc2IDEuOTQ4LS42NC4xNTctMS4zMTYuMjktMi4wMTYuMzkuMjQtLjM3NS40OC0uNzYyLjcwNS0xLjE1OC4yMjUtLjM5LjQzNS0uNzg4LjYzNi0xLjE4em0tOS45NDUuMDJjLjIuMzkyLjQxLjc4My42NCAxLjE3NS4yMy4zOS40NjUuNzcyLjcwNSAxLjE0My0uNjk1LS4xMDItMS4zNjUtLjIzLTIuMDA2LS4zODYuMTgtLjYzLjQwNi0xLjI4Mi42Ni0xLjkzM3pNMTcuOTIgMTYuMzJjLjExMi40OTMuMi45NjguMjU0IDEuNDIzLjIzIDEuODY4LS4wNTQgMy4zMi0uNzE0IDMuNzA4LS4xNDcuMDktLjMzOC4xMjgtLjU2My4xMjgtMS4wMTIgMC0yLjUxNC0uODA3LTQuMTEtMi4yOC42ODYtLjcyIDEuMzctMS41MzYgMi4wMi0yLjQ0IDEuMTA3LS4xMTggMi4xNTQtLjMgMy4xMTMtLjU0em0tMTEuODMuMDFjLjk2LjIzNCAyLjAwNi40MTUgMy4xMDcuNTMyLjY2LjkwNSAxLjM0NSAxLjcyNyAyLjAzNSAyLjQ0Ni0xLjU5NSAxLjQ4My0zLjA5MiAyLjI5NS00LjExIDIuMjk1LS4yMi0uMDA1LS40MDYtLjA1LS41NTMtLjEzMi0uNjY2LS4zOC0uOTU1LTEuODM0LS43My0zLjcwMy4wNTQtLjQ2LjE0Mi0uOTQ0LjI1LTEuNDM4em00LjU2LjY0Yy40NC4wMi44OS4wMzQgMS4zNDUuMDM0LjQ2IDAgLjkxNS0uMDEgMS4zNi0uMDM0LS40NC41NzItLjg5NSAxLjA5NS0xLjM0NSAxLjU2NS0uNDU1LS40Ny0uOTEtLjk5My0xLjM2LTEuNTY1eiIvPjwvc3ZnPg==" alt=""><span>React 19</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDZCNkQ0IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+VGFpbHdpbmQgQ1NTPC90aXRsZT48cGF0aCBkPSJNMTIuMDAxLDQuOGMtMy4yLDAtNS4yLDEuNi02LDQuOGMxLjItMS42LDIuNi0yLjIsNC4yLTEuOGMwLjkxMywwLjIyOCwxLjU2NSwwLjg5LDIuMjg4LDEuNjI0IEMxMy42NjYsMTAuNjE4LDE1LjAyNywxMiwxOC4wMDEsMTJjMy4yLDAsNS4yLTEuNiw2LTQuOGMtMS4yLDEuNi0yLjYsMi4yLTQuMiwxLjhjLTAuOTEzLTAuMjI4LTEuNTY1LTAuODktMi4yODgtMS42MjQgQzE2LjMzNyw2LjE4MiwxNC45NzYsNC44LDEyLjAwMSw0Ljh6IE02LjAwMSwxMmMtMy4yLDAtNS4yLDEuNi02LDQuOGMxLjItMS42LDIuNi0yLjIsNC4yLTEuOGMwLjkxMywwLjIyOCwxLjU2NSwwLjg5LDIuMjg4LDEuNjI0IGMxLjE3NywxLjE5NCwyLjUzOCwyLjU3Niw1LjUxMiwyLjU3NmMzLjIsMCw1LjItMS42LDYtNC44Yy0xLjIsMS42LTIuNiwyLjItNC4yLDEuOGMtMC45MTMtMC4yMjgtMS41NjUtMC44OS0yLjI4OC0xLjYyNCBDMTAuMzM3LDEzLjM4Miw4Ljk3NiwxMiw2LjAwMSwxMnoiLz48L3N2Zz4=" alt=""><span>Tailwind CSS v4</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+c2hhZGNuL3VpPC90aXRsZT48cGF0aCBkPSJNMjIuMjE5IDExLjc4NCAxMS43ODQgMjIuMjE5Yy0uNDA3LjQwNy0uNDA3IDEuMDY4IDAgMS40NzYuNDA3LjQwNyAxLjA2OC40MDcgMS40NzYgMEwyMy42OTUgMTMuMjZjLjQwNy0uNDA4LjQwNy0xLjA2OSAwLTEuNDc2LS40MDgtLjQwNy0xLjA2OS0uNDA3LTEuNDc2IDBaTTIwLjEzMi4zMDUuMzA1IDIwLjEzMmMtLjQwNy40MDctLjQwNyAxLjA2OCAwIDEuNDc2LjQwOC40MDcgMS4wNjkuNDA3IDEuNDc2IDBMMjEuNjA4IDEuNzgxYy40MDctLjQwNy40MDctMS4wNjggMC0xLjQ3Ni0uNDA4LS40MDctMS4wNjktLjQwNy0xLjQ3NiAwWiIvPjwvc3ZnPg==" alt=""><span>shadcn/ui</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMTYxNjE4IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+UmFkaXggVUk8L3RpdGxlPjxwYXRoIGQ9Ik0xMS41MiAyNGE3LjY4IDcuNjggMCAwIDEtNy42OC03LjY4IDcuNjggNy42OCAwIDAgMSA3LjY4LTcuNjhWMjRabTAtMjR2Ny42OEgzLjg0VjBoNy42OFptNC44IDcuNjhhMy44NCAzLjg0IDAgMSAxIDAtNy42OCAzLjg0IDMuODQgMCAwIDEgMCA3LjY4WiIvPjwvc3ZnPg==" alt=""><span>Radix UI</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDA1NUZGIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+RnJhbWVyPC90aXRsZT48cGF0aCBkPSJNNCAwaDE2djhoLTh6TTQgOGg4bDggOEg0ek00IDE2aDh2OHoiLz48L3N2Zz4=" alt=""><span>Motion</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRjU2NTY1IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+THVjaWRlPC90aXRsZT48cGF0aCBkPSJNMTguNDgzIDEuMTIzYTEuMDkgMS4wOSAwIDAgMC0uNzUyLjM2MiAxLjA5IDEuMDkgMCAwIDAgLjA4OCAxLjU0IDExLjk1NiAxMS45NTYgMCAwIDEgNCA4Ljk0NiA3LjYyIDcuNjIgMCAwIDEtNy42MzcgNy42MzYgNy42MiA3LjYyIDAgMCAxLTcuNjM3LTcuNjM2IDMuMjU1IDMuMjU1IDAgMCAxIDMuMjczLTMuMjczYzEuODIgMCAzLjI3MyAxLjQ1IDMuMjczIDMuMjczYTEuMDkgMS4wOSAwIDAgMCAxLjA5IDEuMDkgMS4wOSAxLjA5IDAgMCAwIDEuMDkyLTEuMDljMC0zLTIuNDU1LTUuNDU1LTUuNDU1LTUuNDU1cy01LjQ1NCAyLjQ1NS01LjQ1NCA1LjQ1NWMwIDUuNDA4IDQuNDA4IDkuODE4IDkuODE4IDkuODE4IDUuNDEgMCA5LjgxOC00LjQxIDkuODE4LTkuODE4QTE0LjE2IDE0LjE2IDAgMCAwIDE5LjI3MiAxLjRhMS4wOSAxLjA5IDAgMCAwLS43ODktLjI3N1pNOS44MTggMi4xNUM0LjQwOCAyLjE1MSAwIDYuNTYxIDAgMTEuOTdhMTQuMTYgMTQuMTYgMCAwIDAgNC44IDEwLjYzNyAxLjA5IDEuMDkgMCAwIDAgMS41NC0uMDk2IDEuMDkgMS4wOSAwIDAgMC0uMDk1LTEuNTQgMTEuOTU3IDExLjk1NyAwIDAgMS00LjA2My05IDcuNjIgNy42MiAwIDAgMSA3LjYzNi03LjYzNyA3LjYyIDcuNjIgMCAwIDEgNy42MzcgNy42MzYgMy4yNTYgMy4yNTYgMCAwIDEtMy4yNzMgMy4yNzMgMy4yNTYgMy4yNTYgMCAwIDEtMy4yNzMtMy4yNzMgMS4wOSAxLjA5IDAgMCAwLTEuMDktMS4wOSAxLjA5IDEuMDkgMCAwIDAtMS4wOTIgMS4wOWMwIDMgMi40NTUgNS40NTUgNS40NTUgNS40NTVzNS40NTQtMi40NTUgNS40NTQtNS40NTVjMC01LjQwOC00LjQwOC05LjgxOC05LjgxOC05LjgxOHoiLz48L3N2Zz4=" alt=""><span>Lucide</span></div>
+      <div style="flex-basis:100%; height:0;"></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMkQzNzQ4IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+UHJpc21hPC90aXRsZT48cGF0aCBkPSJNMjEuODA2OCAxOC4yODQ4TDEzLjU1MjguNzU2NWMtLjIwNy0uNDM4Mi0uNjM5LS43MjczLTEuMTI4Ni0uNzU0MS0uNTAyMy0uMDI5My0uOTUyMy4yMTMtMS4yMDYyLjYyNTNMMi4yNjYgMTUuMTI3MWMtLjI3NzMuNDUxOC0uMjcxOCAxLjAwOTEuMDE1OCAxLjQ1NTVsNC4zNzU5IDYuNzc4NmMuMjYwOC40MDQ2LjcxMjcuNjM4OCAxLjE4MjMuNjM4OC4xMzMyIDAgLjI2Ny0uMDE4OC4zOTg3LS4wNTc3bDEyLjcwMTktMy43NTY4Yy4zODkxLS4xMTUxLjcwNzItLjM5MDQuODczNy0uNzU1M3MuMTYzMy0uNzgyOC0uMDA3NS0xLjE0NTR6bS0xLjg0ODEuNzUxOUw5LjE4MTQgMjIuMjI0MmMtLjMyOTIuMDk3NS0uNjQ0OC0uMTg3My0uNTc1Ni0uNTE5NGwzLjg1MDEtMTguNDM4NmMuMDcyLS4zNDQ4LjU0ODYtLjM5OTYuNjk5LS4wODAzbDcuMTI4OCAxNS4xMzhjLjEzNDQuMjg1Ni0uMDE5LjYyMjQtLjMyNS43MTI4eiIvPjwvc3ZnPg==" alt=""><span>Prisma</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjM0U2N0IxIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+Wm9kPC90aXRsZT48cGF0aCBkPSJNMi41ODQgMy41ODJhMi4yNDcgMi4yNDcgMCAwIDEgMi4xMTItMS40NzloMTQuNjE3Yy45NDggMCAxLjc5NC41OTUgMi4xMTUgMS40ODdsMi40NCA2Ljc3N2EyLjI0OCAyLjI0OCAwIDAgMS0uNjI0IDIuNDQzbC05LjYxIDguNTJhMi4yNDcgMi4yNDcgMCAwIDEtMi45NjMuMDE4TC43NzYgMTIuNzczYTIuMjQ4IDIuMjQ4IDAgMCAxLS42NC0yLjQ2N1ptMTIuMDM4IDQuODg3LTkuMTEgNS41MzcgNS43NCA1LjAwN2MuNDU2LjM5OSAxLjEzOS4zOTYgMS41OTMtLjAwNmw1LjY0My01LjAwMUgxNC40bDYuMjM5LTMuOTU3Yy40ODgtLjMyOC42OS0uOTQ3LjQ5MS0xLjVsLTEuMjQtMy40NDZhMS41MzUgMS41MzUgMCAwIDAtMS40NTYtMS4wMTVINS41NDVhMS41MzUgMS41MzUgMCAwIDAtMS40MzEgMS4wMWwtMS4yMjggMy4zN3oiLz48L3N2Zz4=" alt=""><span>Zod</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNkU5RjE4IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+Vml0ZXN0PC90aXRsZT48cGF0aCBkPSJNMTMuNzQwMjQgMS4wNTI5M2EuNDk1MDQuNDk1MDQgMCAwIDAtLjE1NjkuMDI1MTIuNDkzMzguNDkzMzggMCAwIDAtLjI1MDU2LjE4NzZMNy41OTUxMyA5LjU2MTU5YS40ODk1LjQ4OTUgMCAwIDAtLjA4MzczLjIyMzI3LjQ4ODQ2LjQ4ODQ2IDAgMCAwIC4wMzE2My4yMzYyOS40ODkzLjQ4OTMgMCAwIDAgLjEzOTg1LjE5MzE5LjQ5MjcuNDkyNyAwIDAgMCAuMjE0OS4xMDQ4MWwzLjcwNjg1Ljc4NjA5LS4yMjk0NyA0LjU4MDA3YS40ODgzNC40ODgzNCAwIDAgMCAuMDg0NjYuMzAwMTcuNDkyMDUuNDkyMDUgMCAwIDAgLjI0OTMxLjE4ODU0Yy4xMDE1Ny4wMzM5OC4yMTE3NC4wMzQ0NC4zMTM1LjAwMDY0YS40OTM4Ny40OTM4NyAwIDAgMCAuMjUwNTYtLjE4NzYxbDUuNzM3MzUtOC4yOTU5NGEuNDg4NC40ODg0IDAgMCAwIC4wODQwNC0uMjIzMjdjLjAwOS0uMDgwMTUtLjAwMTYtLjE2MTM3LS4wMzE2My0uMjM2MjlhLjQ4ODM1LjQ4ODM1IDAgMCAwLS4xMzk4NS0uMTkzMTkuNDkzMTguNDkzMTggMCAwIDAtLjIxNDktLjEwNDhsLTMuNzA2ODYtLjc4NjEuMjI5NDctNC41ODAwOGEuNDg4MDIuNDg4MDIgMCAwIDAtLjA4NDY2LS4zMDAxNy40OTEzLjQ5MTMgMCAwIDAtLjI0OTMxLS4xODg1My40OTQzOS40OTQzOSAwIDAgMC0uMTU2Ni0uMDI1NzR6TTEuMTU2OTcgOS43ODc5NWMtLjMwNjQ3LjAwMTItLjYwMDA5LjEyMzc4LS44MTY3OS4zNDA0OGExLjE2MTA3IDEuMTYxMDcgMCAwIDAtLjM0MDE3LjgxNjQ4IDEuMTYyIDEuMTYyIDAgMCAwIC4zMzM2Ni44MTk1N2wxMC44NDI0MSAxMC44NDIxYTEuMTU3NjIgMS4xNTc2MiAwIDAgMCAuMzc2NzcuMjUyMTEgMS4xNTgzIDEuMTU4MyAwIDAgMCAuNDQ0NjcuMDg4MzhjLjAwMDg0IDAgLjAwMTYtLjAwMDMxLjAwMjUtLjAwMDMxLjAwMDczIDAgLjAwMTQuMDAwMzEuMDAyMi4wMDAzMWExLjE1ODI3IDEuMTU4MjcgMCAwIDAgLjQ0NDY3LS4wODgzOCAxLjE1NzMxIDEuMTU3MzEgMCAwIDAgLjM3Njc3LS4yNTIxbDEwLjg0MjM2LTEwLjg0MjFhMS4xNjI3MiAxLjE2MjcyIDAgMCAwIC4zMzM5Ny0uODE5NThjLS4wMDEzLS4zMDY0Ny0uMTIzNzYtLjU5OTc2LS4zNDA0OC0uODE2NDhhMS4xNjE2IDEuMTYxNiAwIDAgMC0uODE2NzktLjM0MDQ4IDEuMTYxMTQgMS4xNjExNCAwIDAgMC0uODE5MjYuMzMzNjZsLTUuNDAxMiA1LjQwMDljLS4wMDc4LjAwNzQtLjAxNzE4LjAxMjU1LS4wMjQ4Mi4wMjAxNUwxMiAyMC4xNDAxMWwtNC41OTc3Ni00LjU5NzQ1Yy0uMDA3NC0uMDA3NC0uMDE2NTktLjAxMjM4LS4wMjQxOS0uMDE5NTRsLTUuNDAxNS01LjQwMTUxYTEuMTYyIDEuMTYyIDAgMCAwLS44MTk1OC0uMzMzNjZaIi8+PC9zdmc+" alt=""><span>Vitest — 139 tests</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xMzYuNDQ0IDIyMS41NTZDMTIzLjU1OCAyMjUuMjEzIDExNS4xMDQgMjMxLjYyNSAxMDkuNTM1IDIzOC4wMzJDMTE0Ljg2OSAyMzMuMzY0IDEyMi4wMTQgMjI5LjA4IDEzMS42NTIgMjI2LjM0OEMxNDEuNTEgMjIzLjU1NCAxNDkuOTIgMjIzLjU3NCAxNTYuODY5IDIyNC45MTVWMjE5LjQ4MUMxNTAuOTQxIDIxOC45MzkgMTQ0LjE0NSAyMTkuMzcxIDEzNi40NDQgMjIxLjU1NlpNMTA4Ljk0NiAxNzUuODc2TDYxLjA4OTUgMTg4LjQ4NEM2MS4wODk1IDE4OC40ODQgNjEuOTYxNyAxODkuNzE2IDYzLjU3NjcgMTkxLjM2TDEwNC4xNTMgMTgwLjY2OEMxMDQuMTUzIDE4MC42NjggMTAzLjU3OCAxODguMDc3IDk4LjU4NDcgMTk0LjcwNUMxMDguMDMgMTg3LjU1OSAxMDguOTQ2IDE3NS44NzYgMTA4Ljk0NiAxNzUuODc2Wk0xNDkuMDA1IDI4OC4zNDdDODEuNjU4MiAzMDYuNDg2IDQ2LjAyNzIgMjI4LjQzOCAzNS4yMzk2IDE4Ny45MjhDMzAuMjU1NiAxNjkuMjI5IDI4LjA3OTkgMTU1LjA2NyAyNy41IDE0NS45MjhDMjcuNDM3NyAxNDQuOTc5IDI3LjQ2NjUgMTQ0LjE3OSAyNy41MzM2IDE0My40NDZDMjQuMDQgMTQzLjY1NyAyMi4zNjc0IDE0NS40NzMgMjIuNzA3NyAxNTAuNzIxQzIzLjI4NzYgMTU5Ljg1NSAyNS40NjMzIDE3NC4wMTYgMzAuNDQ3MyAxOTIuNzIxQzQxLjIzMDEgMjMzLjIyNSA3Ni44NjU5IDMxMS4yNzMgMTQ0LjIxMyAyOTMuMTM0QzE1OC44NzIgMjg5LjE4NSAxNjkuODg1IDI4MS45OTIgMTc4LjE1MiAyNzIuODFDMTcwLjUzMiAyNzkuNjkyIDE2MC45OTUgMjg1LjExMiAxNDkuMDA1IDI4OC4zNDdaTTE2MS42NjEgMTI4LjExVjEzMi45MDNIMTg4LjA3N0MxODcuNTM1IDEzMS4yMDYgMTg2Ljk4OSAxMjkuNjc3IDE4Ni40NDcgMTI4LjExSDE2MS42NjFaIiBmaWxsPSIjMkQ0NTUyIi8+CjxwYXRoIGQ9Ik0xOTMuOTgxIDE2Ny41ODRDMjA1Ljg2MSAxNzAuOTU4IDIxMi4xNDQgMTc5LjI4NyAyMTUuNDY1IDE4Ni42NThMMjI4LjcxMSAxOTAuNDJDMjI4LjcxMSAxOTAuNDIgMjI2LjkwNCAxNjQuNjIzIDIwMy41NyAxNTcuOTk1QzE4MS43NDEgMTUxLjc5MyAxNjguMzA4IDE3MC4xMjQgMTY2LjY3NCAxNzIuNDk2QzE3My4wMjQgMTY3Ljk3MiAxODIuMjk3IDE2NC4yNjggMTkzLjk4MSAxNjcuNTg0Wk0yOTkuNDIyIDE4Ni43NzdDMjc3LjU3MyAxODAuNTQ3IDI2NC4xNDUgMTk4LjkxNiAyNjIuNTM1IDIwMS4yNTVDMjY4Ljg5IDE5Ni43MzYgMjc4LjE1OCAxOTMuMDMxIDI4OS44MzcgMTk2LjM2MkMzMDEuNjk4IDE5OS43NDEgMzA3Ljk3NiAyMDguMDYgMzExLjMwNyAyMTUuNDM2TDMyNC41NzIgMjE5LjIxMkMzMjQuNTcyIDIxOS4yMTIgMzIyLjczNiAxOTMuNDEgMjk5LjQyMiAxODYuNzc3Wk0yODYuMjYyIDI1NC43OTVMMTc2LjA3MiAyMjMuOTlDMTc2LjA3MiAyMjMuOTkgMTc3LjI2NSAyMzAuMDM4IDE4MS44NDIgMjM3Ljg2OUwyNzQuNjE3IDI2My44MDVDMjgyLjI1NSAyNTkuMzg2IDI4Ni4yNjIgMjU0Ljc5NSAyODYuMjYyIDI1NC43OTVaTTIwOS44NjcgMzIxLjEwMkMxMjIuNjE4IDI5Ny43MSAxMzMuMTY2IDE4Ni41NDMgMTQ3LjI4NCAxMzMuODY1QzE1My4wOTcgMTEyLjE1NiAxNTkuMDczIDk2LjAyMDMgMTY0LjAyOSA4NS4yMDRDMTYxLjA3MiA4NC41OTUzIDE1OC42MjMgODYuMTUyOSAxNTYuMjAzIDkxLjA3NDZDMTUwLjk0MSAxMDEuNzQ3IDE0NC4yMTIgMTE5LjEyNCAxMzcuNyAxNDMuNDVDMTIzLjU4NiAxOTYuMTI3IDExMy4wMzggMzA3LjI5IDIwMC4yODMgMzMwLjY4MkMyNDEuNDA2IDM0MS42OTkgMjczLjQ0MiAzMjQuOTU1IDI5Ny4zMjMgMjk4LjY1OUMyNzQuNjU1IDMxOS4xOSAyNDUuNzE0IDMzMC43MDEgMjA5Ljg2NyAzMjEuMTAyWiIgZmlsbD0iIzJENDU1MiIvPgo8cGF0aCBkPSJNMTYxLjY2MSAyNjIuMjk2VjIzOS44NjNMOTkuMzMyNCAyNTcuNTM3Qzk5LjMzMjQgMjU3LjUzNyAxMDMuOTM4IDIzMC43NzcgMTM2LjQ0NCAyMjEuNTU2QzE0Ni4zMDIgMjE4Ljc2MiAxNTQuNzEzIDIxOC43ODEgMTYxLjY2MSAyMjAuMTIzVjEyOC4xMUgxOTIuODY5QzE4OS40NzEgMTE3LjYxIDE4Ni4xODQgMTA5LjUyNiAxODMuNDIzIDEwMy45MDlDMTc4Ljg1NiA5NC42MTIgMTc0LjE3NCAxMDAuNzc1IDE2My41NDUgMTA5LjY2NUMxNTYuMDU5IDExNS45MTkgMTM3LjEzOSAxMjkuMjYxIDEwOC42NjggMTM2LjkzM0M4MC4xOTY2IDE0NC42MSA1Ny4xNzkgMTQyLjU3NCA0Ny41NzUyIDE0MC45MTFDMzMuOTYwMSAxMzguNTYyIDI2LjgzODcgMTM1LjU3MiAyNy41MDQ5IDE0NS45MjhDMjguMDg0NyAxNTUuMDYyIDMwLjI2MDUgMTY5LjIyNCAzNS4yNDQ1IDE4Ny45MjhDNDYuMDI3MiAyMjguNDMzIDgxLjY2MyAzMDYuNDgxIDE0OS4wMSAyODguMzQyQzE2Ni42MDIgMjgzLjYwMiAxNzkuMDE5IDI3NC4yMzMgMTg3LjYyNiAyNjIuMjkxSDE2MS42NjFWMjYyLjI5NlpNNjEuMDg0OCAxODguNDg0TDEwOC45NDYgMTc1Ljg3NkMxMDguOTQ2IDE3NS44NzYgMTA3LjU1MSAxOTQuMjg4IDg5LjYwODcgMTk5LjAxOEM3MS42NjE0IDIwMy43NDMgNjEuMDg0OCAxODguNDg0IDYxLjA4NDggMTg4LjQ4NFoiIGZpbGw9IiNFMjU3NEMiLz4KPHBhdGggZD0iTTM0MS43ODYgMTI5LjE3NEMzMjkuMzQ1IDEzMS4zNTUgMjk5LjQ5OCAxMzQuMDcyIDI2Mi42MTIgMTI0LjE4NUMyMjUuNzE2IDExNC4zMDQgMjAxLjIzNiA5Ny4wMjI0IDE5MS41MzcgODguODk5NEMxNzcuNzg4IDc3LjM4MzQgMTcxLjc0IDY5LjM4MDIgMTY1Ljc4OCA4MS40ODU3QzE2MC41MjYgOTIuMTYzIDE1My43OTcgMTA5LjU0IDE0Ny4yODQgMTMzLjg2NkMxMzMuMTcxIDE4Ni41NDMgMTIyLjYyMyAyOTcuNzA2IDIwOS44NjcgMzIxLjA5OEMyOTcuMDkzIDM0NC40NyAzNDMuNTMgMjQyLjkyIDM1Ny42NDQgMTkwLjIzOEMzNjQuMTU3IDE2NS45MTcgMzY3LjAxMyAxNDcuNSAzNjcuNzk5IDEzNS42MjVDMzY4LjY5NSAxMjIuMTczIDM1OS40NTUgMTI2LjA3OCAzNDEuNzg2IDEyOS4xNzRaTTE2Ni40OTcgMTcyLjc1NkMxNjYuNDk3IDE3Mi43NTYgMTgwLjI0NiAxNTEuMzcyIDIwMy41NjUgMTU4QzIyNi44OTkgMTY0LjYyOCAyMjguNzA2IDE5MC40MjUgMjI4LjcwNiAxOTAuNDI1TDE2Ni40OTcgMTcyLjc1NlpNMjIzLjQyIDI2OC43MTNDMTgyLjQwMyAyNTYuNjk4IDE3Ni4wNzcgMjIzLjk5IDE3Ni4wNzcgMjIzLjk5TDI4Ni4yNjIgMjU0Ljc5NkMyODYuMjYyIDI1NC43OTEgMjY0LjAyMSAyODAuNTc4IDIyMy40MiAyNjguNzEzWk0yNjIuMzc3IDIwMS40OTVDMjYyLjM3NyAyMDEuNDk1IDI3Ni4xMDcgMTgwLjEyNiAyOTkuNDIyIDE4Ni43NzNDMzIyLjczNiAxOTMuNDExIDMyNC41NzIgMjE5LjIwOCAzMjQuNTcyIDIxOS4yMDhMMjYyLjM3NyAyMDEuNDk1WiIgZmlsbD0iIzJFQUQzMyIvPgo8cGF0aCBkPSJNMTM5Ljg4IDI0Ni4wNEw5OS4zMzI0IDI1Ny41MzJDOTkuMzMyNCAyNTcuNTMyIDEwMy43MzcgMjMyLjQ0IDEzMy42MDcgMjIyLjQ5NkwxMTAuNjQ3IDEzNi4zM0wxMDguNjYzIDEzNi45MzNDODAuMTkxOCAxNDQuNjExIDU3LjE3NDIgMTQyLjU3NCA0Ny41NzA0IDE0MC45MTFDMzMuOTU1NCAxMzguNTYzIDI2LjgzNCAxMzUuNTcyIDI3LjUwMDEgMTQ1LjkyOUMyOC4wOCAxNTUuMDYzIDMwLjI1NTcgMTY5LjIyNCAzNS4yMzk3IDE4Ny45MjlDNDYuMDIyNSAyMjguNDMzIDgxLjY1ODMgMzA2LjQ4MSAxNDkuMDA1IDI4OC4zNDJMMTUwLjk4OSAyODcuNzE5TDEzOS44OCAyNDYuMDRaTTYxLjA4NDggMTg4LjQ4NUwxMDguOTQ2IDE3NS44NzZDMTA4Ljk0NiAxNzUuODc2IDEwNy41NTEgMTk0LjI4OCA4OS42MDg3IDE5OS4wMThDNzEuNjYxNSAyMDMuNzQzIDYxLjA4NDggMTg4LjQ4NSA2MS4wODQ4IDE4OC40ODVaIiBmaWxsPSIjRDY1MzQ4Ii8+CjxwYXRoIGQ9Ik0yMjUuMjcgMjY5LjE2M0wyMjMuNDE1IDI2OC43MTJDMTgyLjM5OCAyNTYuNjk4IDE3Ni4wNzIgMjIzLjk5IDE3Ni4wNzIgMjIzLjk5TDIzMi44OSAyMzkuODcyTDI2Mi45NzEgMTI0LjI4MUwyNjIuNjA3IDEyNC4xODVDMjI1LjcxMSAxMTQuMzA0IDIwMS4yMzIgOTcuMDIyNCAxOTEuNTMyIDg4Ljg5OTRDMTc3Ljc4MyA3Ny4zODM0IDE3MS43MzUgNjkuMzgwMiAxNjUuNzgzIDgxLjQ4NTdDMTYwLjUyNiA5Mi4xNjMgMTUzLjc5NyAxMDkuNTQgMTQ3LjI4NCAxMzMuODY2QzEzMy4xNzEgMTg2LjU0MyAxMjIuNjIzIDI5Ny43MDYgMjA5Ljg2NyAzMjEuMDk3TDIxMS42NTUgMzIxLjVMMjI1LjI3IDI2OS4xNjNaTTE2Ni40OTcgMTcyLjc1NkMxNjYuNDk3IDE3Mi43NTYgMTgwLjI0NiAxNTEuMzcyIDIwMy41NjUgMTU4QzIyNi44OTkgMTY0LjYyOCAyMjguNzA2IDE5MC40MjUgMjI4LjcwNiAxOTAuNDI1TDE2Ni40OTcgMTcyLjc1NloiIGZpbGw9IiMxRDhEMjIiLz4KPHBhdGggZD0iTTE0MS45NDYgMjQ1LjQ1MUwxMzEuMDcyIDI0OC41MzdDMTMzLjY0MSAyNjMuMDE5IDEzOC4xNjkgMjc2LjkxNyAxNDUuMjc2IDI4OS4xOTVDMTQ2LjUxMyAyODguOTIyIDE0Ny43NCAyODguNjg3IDE0OSAyODguMzQyQzE1Mi4zMDIgMjg3LjQ1MSAxNTUuMzY0IDI4Ni4zNDggMTU4LjMxMiAyODUuMTQ1QzE1MC4zNzEgMjczLjM2MSAxNDUuMTE4IDI1OS43ODkgMTQxLjk0NiAyNDUuNDUxWk0xMzcuNyAxNDMuNDUxQzEzMi4xMTIgMTY0LjMwNyAxMjcuMTEzIDE5NC4zMjYgMTI4LjQ4OSAyMjQuNDM2QzEzMC45NTIgMjIzLjM2NyAxMzMuNTU0IDIyMi4zNzEgMTM2LjQ0NCAyMjEuNTUxTDEzOC40NTcgMjIxLjEwMUMxMzYuMDAzIDE4OC45MzkgMTQxLjMwOCAxNTYuMTY1IDE0Ny4yODQgMTMzLjg2NkMxNDguNzk5IDEyOC4yMjUgMTUwLjMxOCAxMjIuOTc4IDE1MS44MzIgMTE4LjA4NUMxNDkuMzkzIDExOS42MzcgMTQ2Ljc2NyAxMjEuMjI4IDE0My43NzYgMTIyLjg2N0MxNDEuNzU5IDEyOS4wOTMgMTM5LjcyMiAxMzUuODk4IDEzNy43IDE0My40NTFaIiBmaWxsPSIjQzA0QjQxIi8+Cjwvc3ZnPgo=" alt=""><span>Playwright — npm run walk</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNjQ2Q0ZGIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+Vml0ZTwvdGl0bGU+PHBhdGggZD0ibTguMjg2IDEwLjU3OC41MTItOC42NTdhLjMwNi4zMDYgMCAwIDEgLjI0Ny0uMjgyTDE3LjM3Ny4wMDZhLjMwNi4zMDYgMCAwIDEgLjM1My4zODVsLTEuNTU4IDUuNDAzYS4zMDYuMzA2IDAgMCAwIC4zNTIuMzg1bDIuMzg4LS40NmEuMzA2LjMwNiAwIDAgMSAuMzMyLjQzOGwtNi43OSAxMy41NS0uMTIzLjE5YS4yOTQuMjk0IDAgMCAxLS4yNTIuMTRjLS4xNzcgMC0uMzUtLjE1Mi0uMzA1LS4zNjlsMS4wOTUtNS4zMDFhLjMwNi4zMDYgMCAwIDAtLjM4OC0uMzU1bC0xLjQzMy40MzVhLjMwNi4zMDYgMCAwIDEtLjM4OS0uMzU0bC42OS0zLjM3NWEuMzA2LjMwNiAwIDAgMC0uMzctLjM2bC0yLjMyLjUzNmEuMzA2LjMwNiAwIDAgMS0uMzc0LS4zMTZ6bTE0Ljk3Ni03LjkyNkwxNy4yODQgMy43NGwtLjU0NCAxLjg4NyAyLjA3Ny0uNGEuOC44IDAgMCAxIC44NC4zNjkuOC44IDAgMCAxIC4wMzQuNzgzTDEyLjkgMTkuOTNsLS4wMTMuMDI1LS4wMTUuMDIzLS4xMjIuMTlhLjgwMS44MDEgMCAwIDEtLjY3Mi4zNy44MjYuODI2IDAgMCAxLS42MzQtLjMwMi44LjggMCAwIDEtLjE2LS42N2wxLjAyOS00Ljk4MS0xLjEyLjM0YS44MS44MSAwIDAgMS0uODYtLjI2Mi44MDIuODAyIDAgMCAxLS4xNjUtLjY3bC42My0zLjA4LTIuMDI3LjQ2OGEuODA4LjgwOCAwIDAgMS0uNzY4LS4yMzMuODEuODEgMCAwIDEtLjIxNy0uNmwuMzg5LTYuNTctNy40NC0xLjMzYS42MTIuNjEyIDAgMCAwLS42NC45MDZMMTEuNTggMjMuNjkxYS42MTIuNjEyIDAgMCAwIDEuMDY2LS4wMDRsMTEuMjYtMjAuMTM1YS42MTIuNjEyIDAgMCAwLS42NDQtLjl6Ii8+PC9zdmc+" alt=""><span>Vite</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNEIzMkMzIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+RVNMaW50PC90aXRsZT48cGF0aCBkPSJNNy4yNTcgOS4xMzJMMTEuODE2IDYuNWEuMzY5LjM2OSAwIDAgMSAuMzY4IDBsNC41NTkgMi42MzJhLjM2OS4zNjkgMCAwIDEgLjE4NC4zMnY1LjI2M2EuMzcuMzcgMCAwIDEtLjE4NC4zMTlsLTQuNTU5IDIuNjMyYS4zNjkuMzY5IDAgMCAxLS4zNjggMGwtNC41NTktMi42MzJhLjM2OS4zNjkgMCAwIDEtLjE4NC0uMzJWOS40NTJhLjM3LjM3IDAgMCAxIC4xODQtLjMyTTIzLjg1MiAxMS41M2wtNS40NDYtOS40NzVjLS4xOTgtLjM0My0uNTY0LS41OTYtLjk2LS41OTZINi41NTVjLS4zOTYgMC0uNzYyLjI1My0uOTYuNTk2TC4xNDkgMTEuNTA5YTEuMTI3IDEuMTI3IDAgMCAwIDAgMS4xMTdsNS40NDcgOS4zOThjLjE5Ny4zNDIuNTYzLjUxNy45NTkuNTE3aDEwLjg5M2MuMzk1IDAgLjc2LS4xNy45NTktLjUxMmw1LjQ0Ni05LjQxM2ExLjA2OSAxLjA2OSAwIDAgMCAwLTEuMDg2bS00LjUxIDQuNTU2YS40LjQgMCAwIDEtLjIwNC4zMzhMMTIuMiAyMC40MjZhLjM5NS4zOTUgMCAwIDEtLjM5MiAwbC02Ljk0My00LjAwMmEuNC40IDAgMCAxLS4yMDUtLjMzOFY4LjA4YzAtLjE0LjA4My0uMjY5LjIwNC0uMzM4TDExLjggMy43NGMuMTItLjA3LjI3Mi0uMDcuMzkyIDBsNi45NDMgNC4wMDNhLjQuNCAwIDAgMSAuMjA2LjMzOHoiLz48L3N2Zz4=" alt=""><span>ESLint</span></div>
+      <div class="it"><img class="lg" src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMzMzMzMzIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+V2ViUlRDPC90aXRsZT48cGF0aCBkPSJNMTEuOTk5OC4zNTk4Yy0yLjgyNzIgMC01LjE0NTYgMi4xNzMzLTUuMzc5MyA0Ljk0YTUuNDExNyA1LjQxMTcgMCAwMC0xLjIyMDctLjE0MDFDMi40MTggNS4xNTk3IDAgNy41Nzc5IDAgMTAuNTYwM2MwIDIuMjIwMyAxLjM0MSA0LjEyNzQgMy4yNTY4IDQuOTU3YTUuMzczNCA1LjM3MzQgMCAwMC0uNzM3MiAyLjcyMjdjMCAyLjk4MjMgMi40MTc1IDUuNDAwMiA1LjQwMDIgNS40MDAyIDEuNjYyNyAwIDMuMTQ5Mi0uNzUyMiA0LjEzOTctMS45MzQuOTkwNiAxLjE4MTggMi40NzczIDEuOTM0IDQuMTM5OCAxLjkzNCAyLjk4MyAwIDUuNDAwNC0yLjQxOCA1LjQwMDQtNS40MDAyIDAtLjk3MTktLjI1OC0xLjg4My0uNzA3My0yLjY3MDhDMjIuNzI4MyAxNC43MDY4IDI0IDEyLjg0MTggMjQgMTAuNjc5NWMwLTIuOTgyMy0yLjQxNzUtNS40MDA2LTUuMzk5OC01LjQwMDYtLjQxNyAwLS44MjIzLjA0OS0xLjIxMjEuMTM4NEMxNy4yMTEyIDIuNTk0OSAxNC44NjcuMzU5OCAxMS45OTk4LjM1OTh6bS01LjcxNyA2Ljg2ODNoMTAuNTkyNGMuNzQ1OCAwIDEuMzUyLjYwNSAxLjM1MiAxLjM0ODd2Ny42NDYzYzAgLjc0MzgtLjYwNjIgMS4zNDgyLTEuMzUyIDEuMzQ4MmgtMy42MDg1bC03LjI0IDMuNTQ5MSAxLjEwMDgtMy41NDkxaC0uODQ0N2MtLjc0NTggMC0xLjM1MjItLjYwNDQtMS4zNTIyLTEuMzQ4MlY4LjU3NjhjMC0uNzQzOC42MDY0LTEuMzQ4NyAxLjM1MjItMS4zNDg3WiIvPjwvc3ZnPg==" alt=""><span>WebRTC</span></div>
+    </div>
+  </div>
+
+  <!-- ============ DEGRADATION CONTRACT ============ -->
+  <div class="strip" style="left:56px; top:1446px; width:1688px; height:108px;">
+    <h4>The degradation contract — cross-cutting</h4>
+    <p>Every memory read returns <code>MemoryOutcome{ ok, value, degraded, reason }</code>, never a bare array, so it is <span class="k">impossible to consume a result without handling the case where memory was down</span>. A failed lookup is never an empty list: “no prior complaints” and “could not check” would render identically, and a doctor reads that absence as reassurance. <span class="k">Absence of evidence is not evidence of absence</span> — and an agent that cannot tell the difference should not be near a patient.</p>
+  </div>
+
+  <!-- ============ WIRES ============ -->
+  <svg class="wires" viewBox="0 0 1800 1592" role="img"
+       aria-label="Nirog architecture: the browser calls Next.js route handlers on Vercel, which call Amazon Transcribe, Bedrock Titan embeddings, Bedrock gpt-oss and Amazon Polly, and read and write a CockroachDB cluster holding complaints with 1024-dimension vectors, a cosine vector index prefixed by patient id, and an audit table; those rows feed a deterministic core of region resolution, a recurrence rule and SBAR assembly, which is what the clinician reads. The teleconsult call is signalled through the same CockroachDB cluster, which was inspected through the managed MCP Server and the ccloud CLI during development.">
+    <defs>
+      <marker id="ah-slate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#7c8ba3"/>
+      </marker>
+      <marker id="ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#2f7cf6"/>
+      </marker>
+      <marker id="ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#0f8a45"/>
+      </marker>
+    </defs>
+
+    <!-- browser -> server -->
+    <line x1="338" y1="472" x2="396" y2="472" stroke="#7c8ba3" stroke-width="1.7" marker-end="url(#ah-slate)"/>
+    <text x="367" y="463" font-size="11" fill="#55637a" text-anchor="middle"
+          font-family="Segoe UI, system-ui, sans-serif">fetch</text>
+
+    <!-- server <-> aws (double headed) -->
+    <g stroke="#9aa8bf" stroke-width="1.6" fill="none">
+      <line x1="806"  y1="360" x2="806"  y2="266" marker-end="url(#ah-slate)" marker-start="url(#ah-slate)"/>
+      <line x1="1071" y1="360" x2="1071" y2="266" marker-end="url(#ah-slate)" marker-start="url(#ah-slate)"/>
+      <line x1="1336" y1="360" x2="1336" y2="266" marker-end="url(#ah-slate)" marker-start="url(#ah-slate)"/>
+      <line x1="1601" y1="360" x2="1601" y2="266" marker-end="url(#ah-slate)" marker-start="url(#ah-slate)"/>
+    </g>
+    <g font-family="Segoe UI, system-ui, sans-serif" font-size="11" fill="#55637a" text-anchor="middle">
+      <rect x="769"  y="288" width="74" height="20" rx="6" fill="#e3ecf8"/>
+      <text x="806"  y="302">16 kHz PCM</text>
+      <rect x="1026" y="288" width="90" height="20" rx="6" fill="#e3ecf8"/>
+      <text x="1071" y="302">1024-d vector</text>
+      <rect x="1294" y="288" width="84" height="20" rx="6" fill="#e3ecf8"/>
+      <text x="1336" y="302">Converse</text>
+      <rect x="1565" y="288" width="72" height="20" rx="6" fill="#e3ecf8"/>
+      <text x="1601" y="302">mp3 audio</text>
+    </g>
+
+    <!-- server -> cockroachdb.
+         Orthogonal elbows sharing one channel at y=568. The four horizontal
+         runs occupy disjoint x-ranges, so no line crosses another and each
+         label masks only its own line. -->
+    <g stroke="#2f7cf6" stroke-width="1.8" fill="none" stroke-linecap="butt">
+      <path d="M541,524  V560 Q541,568  549,568  H647  Q655,568  655,576  V690"  marker-end="url(#ah-blue)"/>
+      <path d="M990,524  V560 Q990,568  982,568  H783  Q775,568  775,576  V690"  marker-end="url(#ah-blue)"/>
+      <path d="M1071,524 V560 Q1071,568 1079,568 H1102 Q1110,568 1110,576 V690"  marker-end="url(#ah-blue)"/>
+      <path d="M1160,524 V560 Q1160,568 1168,568 H1472 Q1480,568 1480,576 V690"  marker-end="url(#ah-blue)"/>
+    </g>
+    <g font-family="Segoe UI, system-ui, sans-serif" font-size="11" fill="#1f5fc4" text-anchor="middle">
+      <rect x="570"  y="590" width="170" height="21" rx="6.5" fill="#ffffff" stroke="#cfe0fa"/>
+      <text x="655"  y="605">SELECT history · no vector</text>
+
+      <rect x="1019" y="590" width="182" height="21" rx="6.5" fill="#ffffff" stroke="#cfe0fa"/>
+      <text x="1110" y="605" font-family="Cascadia Mono, Consolas, monospace" font-size="10.5">ORDER BY embedding &lt;=&gt; $vec</text>
+
+      <rect x="1421" y="590" width="118" height="21" rx="6.5" fill="#ffffff" stroke="#cfe0fa"/>
+      <text x="1480" y="605">audit row, always</text>
+
+      <rect x="692"  y="616" width="166" height="21" rx="6.5" fill="#ffffff" stroke="#cfe0fa"/>
+      <text x="775"  y="631">INSERT complaint + vector</text>
+    </g>
+
+    <!-- cockroachdb -> deterministic core -->
+    <line x1="690" y1="984" x2="690" y2="1038" stroke="#0f8a45" stroke-width="1.9" marker-end="url(#ah-green)"/>
+    <rect x="574" y="1000" width="232" height="21" rx="6.5" fill="#ffffff" stroke="#c6e8d5"/>
+    <text x="690" y="1015" font-family="Segoe UI, system-ui, sans-serif" font-size="11"
+          fill="#0f7a3e" text-anchor="middle">rows — dates and words, never scores</text>
+
+    <!-- core -> clinician -->
+    <g stroke="#0f8a45" stroke-width="1.8" fill="none">
+      <line x1="1024" y1="1131" x2="1076" y2="1131"  marker-end="url(#ah-green)"/>
+      <line x1="1024" y1="1223" x2="1076" y2="1223" marker-end="url(#ah-green)"/>
+    </g>
+  </svg>
+
+</div>

@@ -1,0 +1,24 @@
+{
+  "name": "nirog-promo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render Promo out/nirog-promo.mp4 --codec h264 --concurrency 8"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
+    "@remotion/cli": "^4.0.238",
+    "@remotion/media-utils": "^4.0.238",
+    "@remotion/three": "^4.0.238",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.238",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "typescript": "^5.5.4"
+  }
+}

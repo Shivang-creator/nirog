@@ -1,0 +1,22 @@
+[
+  {
+    "id": "s1-intro",
+    "file": "audio/s1-intro.mp3",
+    "duration": 10.296
+  },
+  {
+    "id": "s2-app",
+    "file": "audio/s2-app.mp3",
+    "duration": 12.936
+  },
+  {
+    "id": "s3-tech",
+    "file": "audio/s3-tech.mp3",
+    "duration": 34.752
+  },
+  {
+    "id": "s4-outro",
+    "file": "audio/s4-outro.mp3",
+    "duration": 3.072
+  }
+]
