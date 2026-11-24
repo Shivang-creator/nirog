@@ -81,6 +81,27 @@ export async function MemoryPanel({ portalPatientId }: { portalPatientId: string
               </p>
             </div>
           </div>
+        ) : !chart ? (
+          /*
+           * The link table names a memory record and the database, though
+           * reachable, has no such patient. That is a broken link, not a clean
+           * history: nothing was read, so nothing may be concluded. It used to
+           * fall through to the branch below and tell the doctor "this is a
+           * first presentation" about a patient whose history was never found.
+           */
+          <div className="flex gap-2.5 rounded-xl bg-soft-amber px-4 py-3">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber" />
+            <div>
+              <p className="text-sm font-semibold text-ink">
+                Memory record not found
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+                This chart is linked to a memory record that does not exist in
+                the database, so this patient&rsquo;s earlier complaints were
+                not checked. Do not read this as a first presentation.
+              </p>
+            </div>
+          </div>
         ) : complaints.length === 0 ? (
           <p className="text-sm text-ink-soft">
             No earlier complaints on file. This is a first presentation.
