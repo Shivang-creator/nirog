@@ -6,6 +6,7 @@ import { searchMemory, logRecall, recallThresholdFor } from "@/lib/memory/recall
 import { resolveRegion, inheritThresholdFor } from "@/lib/clinical/resolve";
 import { embedderFromEnv, resilientEmbedder } from "@/lib/ai/embed";
 import type { RecallMatch } from "@/lib/memory/recall";
+import { limited } from "@/lib/http/paid-route";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,10 @@ async function currentVisit(patientId: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  // Each write embeds the text on Bedrock, so this route spends money too.
+  const refused = limited(req, "complaint");
+  if (refused) return refused;
+
   let body: { patientId?: string; text?: string };
   try {
     body = await req.json();
@@ -132,8 +137,14 @@ export async function POST(req: NextRequest) {
       }`,
       embedProvider,
     });
+    // The driver's message (constraint names, host, SQL user) is in the audit
+    // row above and the server log. The caller only needs to know it failed.
+    console.error(
+      "[memory/complaint] insert failed:",
+      err instanceof Error ? err.message : err,
+    );
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : String(err) },
+      { error: "The complaint could not be recorded." },
       { status: 500 },
     );
   }

@@ -5,6 +5,9 @@ import {
   type LanguageCode,
 } from "@aws-sdk/client-transcribe-streaming";
 
+import { limited } from "@/lib/http/paid-route";
+import { readJsonCapped } from "@/lib/http/rate-limit";
+
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
@@ -21,6 +24,14 @@ export const maxDuration = 30;
  */
 
 const SAMPLE_RATE = 16_000;
+
+/**
+ * The scene stops recording at 30 seconds (MIC_MAX_MS), which is 960 KB of
+ * 16 kHz mono PCM and about 1.3 MB once base64-encoded. Transcribe bills by the
+ * second of audio, so a clip with no ceiling is a bill with no ceiling; this
+ * allows roughly twice the longest answer the scene can send.
+ */
+const MAX_BODY_BYTES = 2_700_000;
 
 /**
  * Strip the RIFF header.
@@ -50,12 +61,16 @@ function* chunks(pcm: Buffer, size = 16_000) {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { audio?: string; format?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad json" }, { status: 400 });
+  const refused = limited(req, "transcribe");
+  if (refused) return refused;
+
+  const read = await readJsonCapped(req, MAX_BODY_BYTES);
+  if (!read.ok) {
+    return read.reason === "too-large"
+      ? NextResponse.json({ error: "audio too long" }, { status: 413 })
+      : NextResponse.json({ error: "bad json" }, { status: 400 });
   }
+  const body = (read.value ?? {}) as { audio?: string; format?: string };
 
   const b64 = String(body.audio ?? "");
   if (!b64) return NextResponse.json({ error: "no audio" }, { status: 400 });
@@ -118,9 +133,8 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const e = err as { name?: string; message?: string };
     console.error("[transcribe] failed:", e.name, e.message);
-    return NextResponse.json(
-      { error: `${e.name ?? "Error"}: ${e.message ?? "transcription failed"}` },
-      { status: 502 },
-    );
+    // Still loud — a 502, never an empty transcript — but the AWS detail (which
+    // can name the IAM principal and account) stays in the server log.
+    return NextResponse.json({ error: "Transcription failed." }, { status: 502 });
   }
 }

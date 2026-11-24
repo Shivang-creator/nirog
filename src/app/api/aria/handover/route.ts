@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { chatConfigured, converseJson, CHAT_MODEL } from "@/lib/ai/converse";
+import { limited } from "@/lib/http/paid-route";
+import { readJsonCapped } from "@/lib/http/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 90;
@@ -16,7 +18,9 @@ export const maxDuration = 90;
 
 const requestSchema = z.object({
   history: z
-    .array(z.object({ role: z.enum(["user", "assistant"]), text: z.string() }))
+    // Bounded like /api/aria/chat. A turn had no length limit here, so one
+    // request could carry an arbitrarily large transcript into the prompt.
+    .array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(4000) }))
     .min(1)
     .max(80),
   intake: z.record(z.string(), z.array(z.string())),
@@ -86,6 +90,9 @@ const handoverSchema = z.object({
   }),
 });
 
+/** Eighty turns of four thousand characters, plus the case state. */
+const MAX_BODY_BYTES = 500_000;
+
 const SYSTEM = [
   `You are a clinical documentation assistant writing an SBAR handover from a nurse-intake transcript, for a doctor who is about to see the patient. Precise, neutral clinical register. Quote the patient's own words for symptoms where possible.`,
   ``,
@@ -103,9 +110,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const refused = limited(req, "handover");
+  if (refused) return refused;
+
+  const body = await readJsonCapped(req, MAX_BODY_BYTES);
+  if (!body.ok) {
+    return NextResponse.json(
+      { error: "bad request" },
+      { status: body.reason === "too-large" ? 413 : 400 },
+    );
+  }
+
   let parsed: z.infer<typeof requestSchema>;
   try {
-    parsed = requestSchema.parse(await req.json());
+    parsed = requestSchema.parse(body.value);
   } catch {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }

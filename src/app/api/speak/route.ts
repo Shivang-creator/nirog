@@ -7,6 +7,8 @@ import {
   type LanguageCode,
 } from "@aws-sdk/client-polly";
 
+import { limited } from "@/lib/http/paid-route";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -46,6 +48,9 @@ function client() {
 }
 
 export async function POST(req: NextRequest) {
+  const refused = limited(req, "speak");
+  if (refused) return refused;
+
   let body: { text?: string };
   try {
     body = await req.json();
@@ -103,9 +108,11 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const e = err as { name?: string; message?: string };
     console.error("[speak] polly failed:", e.name, e.message);
-    return NextResponse.json(
-      { error: `${e.name ?? "Error"}: ${e.message ?? "synthesis failed"}` },
-      { status: 502 },
-    );
+    /*
+     * The detail stays in the server log. An AWS error message names the IAM
+     * principal and the account it belongs to ("User: arn:aws:iam::… is not
+     * authorized to perform …"), and this route answers anyone on the internet.
+     */
+    return NextResponse.json({ error: "Speech synthesis failed." }, { status: 502 });
   }
 }

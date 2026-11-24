@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { chatConfigured, converseJson, CHAT_MODEL } from "@/lib/ai/converse";
+import { limited } from "@/lib/http/paid-route";
+import { readJsonCapped } from "@/lib/http/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -16,6 +18,13 @@ export const maxDuration = 60;
  */
 
 const QUESTION_BUDGET = 8;
+
+/**
+ * The request body becomes the prompt, so its size is the size of the bill.
+ * Sixty turns of four thousand characters is the most the schema allows; this
+ * leaves room for the case state on top and refuses anything beyond it.
+ */
+const MAX_BODY_BYTES = 400_000;
 
 const turnSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -103,9 +112,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const refused = limited(req, "chat");
+  if (refused) return refused;
+
+  const body = await readJsonCapped(req, MAX_BODY_BYTES);
+  if (!body.ok) {
+    return NextResponse.json(
+      { error: "bad request" },
+      { status: body.reason === "too-large" ? 413 : 400 },
+    );
+  }
+
   let parsed: z.infer<typeof requestSchema>;
   try {
-    parsed = requestSchema.parse(await req.json());
+    parsed = requestSchema.parse(body.value);
   } catch {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
