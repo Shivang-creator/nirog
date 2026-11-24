@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { chatConfigured, converseJson, CHAT_MODEL } from "@/lib/ai/converse";
+import { floorTriage } from "@/lib/clinical/red-flags";
 import { limited } from "@/lib/http/paid-route";
 import { readJsonCapped } from "@/lib/http/rate-limit";
 
@@ -151,6 +152,22 @@ export async function POST(req: NextRequest) {
         reasoningEffort: "medium",
       }),
     );
+
+    /*
+     * The one place a rule overrules the model. The triage level is the
+     * model's opinion; it may not sit below what the red flags demand — see
+     * lib/clinical/red-flags.ts. The rule only ever raises.
+     */
+    const floor = floorTriage({
+      modelLevel: handover.recommendation.triage_level,
+      intakeFlags: parsed.flags,
+      handoverRedFlags: handover.assessment.red_flags,
+    });
+    if (floor.raised) {
+      handover.recommendation.triage_level = floor.level;
+      handover.recommendation.triage_rationale =
+        `${handover.recommendation.triage_rationale} ${floor.note}`.trim();
+    }
 
     return NextResponse.json({
       ...handover,

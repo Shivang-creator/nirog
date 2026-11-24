@@ -27,6 +27,7 @@ import {
   type InterviewState,
 } from "@/lib/clinical/interview";
 import type { Region } from "@/lib/clinical/regions";
+import { mergeFlags } from "@/lib/clinical/red-flags";
 
 const USER = { name: "Rahul", greeting: "Good Morning" };
 
@@ -294,8 +295,14 @@ export function Home({ patientId }: { patientId: string | null }) {
           candidates: res.candidates,
           complete: res.complete,
           summary: res.summary,
-          redFlag: res.redFlag,
-          flags: res.flags,
+          /*
+           * Sticky. The service returns the flags for this turn only and is
+           * never sent the earlier ones, so assigning them here let a later
+           * turn with an empty list erase an emergency raised three questions
+           * ago — and the handover then told the doctor none was raised.
+           */
+          redFlag: c.redFlag || res.redFlag,
+          flags: mergeFlags(c.flags, res.flags ?? []),
         });
         aria.say(res.reply);
 

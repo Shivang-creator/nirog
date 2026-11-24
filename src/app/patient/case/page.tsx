@@ -6,6 +6,7 @@ import { REGION_LABELS } from "@/lib/clinical/regions";
 import { renderSbar } from "@/lib/clinical/sbar";
 import { HideScene } from "@/components/nirog/SceneVisibility";
 import { ConversationHandover } from "@/components/nirog/ConversationHandover";
+import { RedFlagNotice } from "@/components/nirog/RedFlagNotice";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +121,12 @@ export default async function CasePage() {
             </Link>
           </div>
         </header>
+
+        {/*
+          Above everything, and outside the chart: it must render whether or
+          not the record could be reached.
+        */}
+        <RedFlagNotice />
 
         {degraded && (
           <div
