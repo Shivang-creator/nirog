@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { safeNextPath } from "@/lib/http/safe-next";
 
 /**
  * OAuth callback (e.g. Google). Exchanges the code for a session, then ensures
@@ -11,7 +12,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/portal";
+  // Attacker-controlled: only a same-site path survives (see safe-next.ts).
+  const next = safeNextPath(searchParams.get("next"));
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=oauth`);
