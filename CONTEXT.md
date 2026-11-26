@@ -88,10 +88,10 @@ lower back. That is the whole product in one row.
 
 ## What does not work
 
-**Production still points at the old AWS account.** The Vercel env vars carry
-the old keys, so deployed ARIA falls back to the offline embedder and cannot
-chat. Copy `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `BEDROCK_CHAT_MODEL`
-and `NEXT_PUBLIC_ARIA_API_URL` from the working `.env.local` into Vercel.
+**Production still holds a static AWS key.** Do not copy keys into Vercel.
+Set `AWS_ROLE_ARN` (Production and Preview), delete `AWS_ACCESS_KEY_ID` and
+`AWS_SECRET_ACCESS_KEY`, then redeploy. On Vercel the app now refuses static
+keys. See [docs/security/aws-credentials.md](docs/security/aws-credentials.md).
 
 **One thing to know about the embedders.** Cosine distances are only
 comparable within one embedding space: Titan compresses short sentences into
@@ -240,24 +240,24 @@ explicitly permitted by the rules and need no disclosure; this does.
 ```
 DATABASE_URL=postgresql://...cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full
 AWS_REGION=us-west-2
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
+AWS_PROFILE=...          # after `aws login`; no access keys
 BEDROCK_EMBED_MODEL=amazon.titan-embed-text-v2:0
 BEDROCK_CHAT_MODEL=openai.gpt-oss-120b-1:0
 NEXT_PUBLIC_ARIA_API_URL=/api/aria
 ```
 
-The same variables are set on Vercel for production and preview — but the AWS
-keys there are still the old account's and need replacing (see "What does not
-work").
+On Vercel, `AWS_PROFILE` is replaced by `AWS_ROLE_ARN` (role
+`nirog-vercel-oidc`). Each function exchanges its Vercel OIDC token for
+15-minute STS credentials.
 
 **Cluster:** `project-nirog`, CockroachDB v26.2.5, AWS Mumbai (ap-south-1).
 Free trial, $400 credits, expires 17 Sep 2026.
 
-**IAM user `nirog-app`** (on the current AWS account) holds exactly what the
-app uses: `bedrock:InvokeModel` scoped to the Titan embed and gpt-oss-120b
-models, plus `AmazonPollyFullAccess` and `AmazonTranscribeFullAccess`. The old
-account's `nirog-memory` user is no longer referenced anywhere.
+**IAM role `nirog-vercel-oidc`** holds exactly what the app uses:
+`bedrock:InvokeModel` on the Titan embed and gpt-oss-120b models in us-west-2,
+`polly:SynthesizeSpeech` and `transcribe:StartStreamTranscription`. The old IAM
+user `nirog-app` (Polly and Transcribe FullAccess) is to be deleted once
+production is on the role.
 
 ---
 

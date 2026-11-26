@@ -24,8 +24,11 @@ also delete lexicons and read or delete other transcription jobs.
 | Vercel Production and Preview | Vercel OIDC token → `sts:AssumeRoleWithWebIdentity` → role `nirog-vercel-oidc` | 15 minutes, refreshed automatically |
 | Local development | SDK default chain: `aws login` / `aws sso login` with `AWS_PROFILE` | session-based |
 
-The role trusts only this Vercel project's `production` and `preview`
-environments:
+The role trusts only named Vercel projects, and only their `production` and
+`preview` environments. There is one statement per Vercel team: `shivcreates`
+for the `nirog-memory` production app, and `om-devi-shankars-projects` for the
+`nirog-wa-demo` deployment used to verify this change. The production
+statement:
 
 ```json
 "Condition": {
@@ -53,7 +56,10 @@ It can do exactly three things:
    `AWS_ROLE_ARN=arn:aws:iam::<account>:role/nirog-vercel-oidc` and keep
    `AWS_REGION=us-west-2`.
 3. Delete `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` from every
-   environment, then redeploy.
+   environment, then redeploy. Do step 2 before merging this change: on
+   Vercel, the app refuses static keys, so a deployment with keys and no role
+   reports AWS as not configured (voice falls back to the browser, chat
+   answers 501).
 4. Check `GET /api/aria/health` returns `ok: true`, and that CloudTrail shows
    `AssumedRole/nirog-vercel-oidc/nirog-vercel` on Bedrock, Polly and
    Transcribe calls.

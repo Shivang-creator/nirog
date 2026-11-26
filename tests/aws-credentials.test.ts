@@ -21,6 +21,17 @@ describe("awsConfigured", () => {
     expect(awsConfigured({ AWS_REGION: "us-west-2", AWS_PROFILE: "dev" })).toBe(true);
   });
 
+  it("refuses a static key on Vercel", () => {
+    const keyOnly = {
+      AWS_REGION: "us-west-2",
+      AWS_ACCESS_KEY_ID: "AKIAEXAMPLE",
+      AWS_SECRET_ACCESS_KEY: "secret",
+    };
+    expect(awsConfigured(keyOnly)).toBe(true); // a laptop
+    expect(awsConfigured({ ...keyOnly, VERCEL: "1" })).toBe(false);
+    expect(awsConfigured({ ...keyOnly, VERCEL: "1", AWS_ROLE_ARN: ROLE })).toBe(true);
+  });
+
   it("treats whitespace as absent", () => {
     expect(awsConfigured({ AWS_REGION: "us-west-2", AWS_ROLE_ARN: "  " })).toBe(false);
   });

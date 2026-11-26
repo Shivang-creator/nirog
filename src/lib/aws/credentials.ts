@@ -39,17 +39,17 @@ export function awsRegion(env: Env = process.env): string | undefined {
 
 /**
  * True when some credential source is configured: a role to federate into, a
- * named profile, or (still accepted, never required) a key in the environment.
+ * named profile, or (local machines only) a key in the environment.
  * Whitespace-only values count as absent.
  */
 export function awsConfigured(env: Env = process.env): boolean {
   if (!awsRegion(env)) return false;
   const has = (k: string) => Boolean(env[k]?.trim());
-  return (
-    has("AWS_ROLE_ARN") ||
-    has("AWS_PROFILE") ||
-    (has("AWS_ACCESS_KEY_ID") && has("AWS_SECRET_ACCESS_KEY"))
-  );
+  if (has("AWS_ROLE_ARN") || has("AWS_PROFILE")) return true;
+  // On Vercel, a static key is refused. That way a forgotten key in project env
+  // makes the AWS features report "not configured" instead of quietly working.
+  if (has("VERCEL")) return false;
+  return has("AWS_ACCESS_KEY_ID") && has("AWS_SECRET_ACCESS_KEY");
 }
 
 /** Memoise a credential source so concurrent callers share one fetch. */
