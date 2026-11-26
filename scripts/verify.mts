@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
 import { EMBED_DIMS } from "../src/lib/ai/embed.ts";
+import { awsConfigured, awsCredentials } from "../src/lib/aws/credentials.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 config({ path: join(here, "..", ".env.local"), quiet: true });
@@ -100,11 +101,9 @@ if (!process.env.DATABASE_URL) {
 console.log("\nAmazon Bedrock");
 
 const region = process.env.AWS_REGION?.trim();
-const keyId = process.env.AWS_ACCESS_KEY_ID?.trim();
-const secret = process.env.AWS_SECRET_ACCESS_KEY?.trim();
 const embedModel = process.env.BEDROCK_EMBED_MODEL?.trim() ?? "amazon.titan-embed-text-v2:0";
 
-if (!region || !keyId || !secret) {
+if (!awsConfigured()) {
   warn("no AWS credentials — the app will use the offline embedder");
   warn("the hackathon REQUIRES at least one AWS service, so this must be fixed");
   console.log("        see HANDOVER.md §1");
@@ -116,7 +115,7 @@ if (!region || !keyId || !secret) {
     );
     const client = new BedrockRuntimeClient({
       region,
-      credentials: { accessKeyId: keyId, secretAccessKey: secret },
+      credentials: awsCredentials(),
     });
 
     const t0 = Date.now();

@@ -1,4 +1,5 @@
 import "server-only";
+import { awsConfigured, awsCredentials, awsRegion } from "@/lib/aws/credentials";
 
 /**
  * Chat completion on Amazon Bedrock — the generative half of ARIA's brain.
@@ -19,11 +20,7 @@ export const CHAT_MODEL =
   process.env.BEDROCK_CHAT_MODEL ?? "openai.gpt-oss-120b-1:0";
 
 export function chatConfigured(): boolean {
-  return Boolean(
-    process.env.AWS_REGION &&
-      process.env.AWS_ACCESS_KEY_ID &&
-      process.env.AWS_SECRET_ACCESS_KEY,
-  );
+  return awsConfigured();
 }
 
 export interface ConverseTurn {
@@ -47,7 +44,10 @@ export async function converseText(opts: {
   const { BedrockRuntimeClient, ConverseCommand } = await import(
     "@aws-sdk/client-bedrock-runtime"
   );
-  const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION });
+  const client = new BedrockRuntimeClient({
+    region: awsRegion(),
+    credentials: awsCredentials(),
+  });
 
   // Converse requires alternating roles starting with "user"; collapse any
   // consecutive same-role turns rather than rejecting the transcript.

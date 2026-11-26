@@ -3,6 +3,7 @@ import {
   TranscribeStreamingClient,
   StartStreamTranscriptionCommand,
 } from "@aws-sdk/client-transcribe-streaming";
+import { awsConfigured, awsCredentials, awsRegion } from "@/lib/aws/credentials";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -59,10 +60,7 @@ export async function POST(req: NextRequest) {
   const b64 = String(body.audio ?? "");
   if (!b64) return NextResponse.json({ error: "no audio" }, { status: 400 });
 
-  const region = process.env.AWS_REGION;
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-  if (!region || !accessKeyId || !secretAccessKey) {
+  if (!awsConfigured()) {
     return NextResponse.json(
       { error: "Voice input is not configured on this deployment." },
       { status: 501 },
@@ -77,8 +75,8 @@ export async function POST(req: NextRequest) {
   }
 
   const client = new TranscribeStreamingClient({
-    region,
-    credentials: { accessKeyId, secretAccessKey },
+    region: awsRegion(),
+    credentials: awsCredentials(),
   });
 
   try {

@@ -1,0 +1,5 @@
+﻿.env*
+!.env.example
+aws-well-architected-review*
+promo
+

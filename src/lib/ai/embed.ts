@@ -18,6 +18,12 @@
  */
 
 import { createHash } from "node:crypto";
+import {
+  awsConfigured,
+  awsCredentials,
+  awsRegion,
+  type AwsCredentials,
+} from "../aws/credentials";
 
 export const EMBED_DIMS = 1024;
 
@@ -161,9 +167,8 @@ export const offlineEmbedder: Embedder = {
 
 export function bedrockEmbedder(opts: {
   region: string;
-  accessKeyId: string;
-  secretAccessKey: string;
   model: string;
+  credentials?: () => Promise<AwsCredentials>;
 }): Embedder {
   const provider = `bedrock:${opts.model}`;
 
@@ -178,10 +183,7 @@ export function bedrockEmbedder(opts: {
 
       const client = new BedrockRuntimeClient({
         region: opts.region,
-        credentials: {
-          accessKeyId: opts.accessKeyId,
-          secretAccessKey: opts.secretAccessKey,
-        },
+        credentials: opts.credentials,
       });
 
       const res = await client.send(
@@ -263,20 +265,22 @@ export function resilientEmbedder(
 /**
  * Pick a backend from the environment.
  *
- * Presence of an AWS key is the only switch. There is no "prefer offline" flag,
- * because a deployment that has real credentials and quietly uses the fallback
- * anyway is the exact failure this provenance system is meant to make impossible.
+ * Configured AWS credentials are the only switch: a role (AWS_ROLE_ARN), a
+ * profile, or a key. There is no "prefer offline" flag, because a deployment
+ * that has real credentials and quietly uses the fallback anyway is the exact
+ * failure this provenance system is meant to make impossible.
  */
 export function embedderFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): Embedder {
-  const region = env.AWS_REGION?.trim();
-  const accessKeyId = env.AWS_ACCESS_KEY_ID?.trim();
-  const secretAccessKey = env.AWS_SECRET_ACCESS_KEY?.trim();
   const model = env.BEDROCK_EMBED_MODEL?.trim() || "amazon.titan-embed-text-v2:0";
 
-  if (region && accessKeyId && secretAccessKey) {
-    return bedrockEmbedder({ region, accessKeyId, secretAccessKey, model });
+  if (awsConfigured(env)) {
+    return bedrockEmbedder({
+      region: awsRegion(env)!,
+      model,
+      credentials: awsCredentials(env),
+    });
   }
   return offlineEmbedder;
 }

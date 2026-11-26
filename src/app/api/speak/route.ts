@@ -5,6 +5,7 @@ import {
   type VoiceId,
   type Engine,
 } from "@aws-sdk/client-polly";
+import { awsConfigured, awsCredentials, awsRegion } from "@/lib/aws/credentials";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,8 @@ const ENGINE = (process.env.POLLY_ENGINE ?? "neural") as Engine;
 const MAX_CHARS = 1000;
 
 function client() {
-  const region = process.env.AWS_REGION;
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-  if (!region || !accessKeyId || !secretAccessKey) return null;
-  return new PollyClient({ region, credentials: { accessKeyId, secretAccessKey } });
+  if (!awsConfigured()) return null;
+  return new PollyClient({ region: awsRegion(), credentials: awsCredentials() });
 }
 
 export async function POST(req: NextRequest) {

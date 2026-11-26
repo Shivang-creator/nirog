@@ -139,6 +139,16 @@ describe("backend selection", () => {
     );
   });
 
+  it("selects Bedrock with a federated role and no key at all", () => {
+    const federated = {
+      AWS_REGION: "us-west-2",
+      AWS_ROLE_ARN: "arn:aws:iam::123456789012:role/nirog-vercel",
+    };
+    expect(embedderFromEnv(federated).provider).toBe(
+      "bedrock:amazon.titan-embed-text-v2:0",
+    );
+  });
+
   it("names the model in the provider string, so audit rows are specific", () => {
     const full = {
       AWS_REGION: "us-west-2",
